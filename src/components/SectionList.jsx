@@ -1,8 +1,9 @@
-// src/components/SectionList.js
 import React, { useState } from 'react';
 import Section from './Section';
 import NewSectionForm from './NewSectionForm.jsx';
 import { v4 as uuidv4 } from 'uuid';
+import { Button, Box, Typography } from '@mui/material';
+import { Add } from '@mui/icons-material';
 
 const SectionList = ({ sections, addSection, updateSection, deleteSection }) => {
   const [showForm, setShowForm] = useState(false);
@@ -19,7 +20,7 @@ const SectionList = ({ sections, addSection, updateSection, deleteSection }) => 
   };
 
   return (
-    <div className="section-list">
+    <Box sx={{ mt: 4 }}>
       {sections.map(section => (
         <Section
           key={section.id}
@@ -35,15 +36,20 @@ const SectionList = ({ sections, addSection, updateSection, deleteSection }) => 
           onCancel={() => setShowForm(false)}
         />
       ) : (
-        <button
-          className="add-section-btn"
-          onClick={() => setShowForm(true)}
-        >
-          + Add New Section
-        </button>
+        <Box textAlign="center" sx={{ mt: 4 }}>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<Add />}
+            onClick={() => setShowForm(true)}
+          >
+            Add New Section
+          </Button>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 };
 
 export default SectionList;
+
