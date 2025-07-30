@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Section from './Section';
 import NewSectionForm from './NewSectionForm.jsx';
 import { v4 as uuidv4 } from 'uuid';
-import { Button, Box, Typography } from '@mui/material';
+import { Button, Box } from '@mui/material';
 import { Add } from '@mui/icons-material';
 
 const SectionList = ({ sections, addSection, updateSection, deleteSection }) => {
@@ -32,7 +32,7 @@ const SectionList = ({ sections, addSection, updateSection, deleteSection }) => 
 
       {showForm ? (
         <NewSectionForm
-          onCreate={handleCreateSection}
+          onSubmit={handleCreateSection}
           onCancel={() => setShowForm(false)}
         />
       ) : (
@@ -52,4 +52,5 @@ const SectionList = ({ sections, addSection, updateSection, deleteSection }) => 
 };
 
 export default SectionList;
+
 

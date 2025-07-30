@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SectionList from './components/SectionList.jsx';
+import DailyActivityReport from './components/DailyActivityReport.jsx';
 import {
   Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper
 } from '@mui/material';
@@ -78,6 +79,7 @@ function App() {
             updateSection={updateSection}
             deleteSection={deleteSection}
           />
+          <DailyActivityReport sections={sections} />
         </Paper>
       </Container>
     </ThemeProvider>
@@ -85,6 +87,7 @@ function App() {
 }
 
 export default App;
+
 
 
 

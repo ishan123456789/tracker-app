@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TextField, Button, Select, MenuItem, IconButton, Box, Typography,
   Paper, FormControl, InputLabel
 } from '@mui/material';
 import { AddCircleOutline, RemoveCircleOutline } from '@mui/icons-material';
 
-const NewSectionForm = ({ onCreate, onCancel }) => {
+const NewSectionForm = ({ onSubmit, onCancel, initialData }) => {
   const [title, setTitle] = useState('');
   const [columns, setColumns] = useState([
     { name: 'Date', type: 'date' }
   ]);
+
+  const isEditMode = Boolean(initialData);
+
+  useEffect(() => {
+    if (isEditMode) {
+      setTitle(initialData.title);
+      setColumns(initialData.columns);
+    }
+  }, [initialData, isEditMode]);
 
   const addColumn = () => {
     setColumns([...columns, { name: '', type: 'text' }]);
@@ -28,13 +37,13 @@ const NewSectionForm = ({ onCreate, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onCreate({ title, columns });
+    onSubmit({ title, columns });
   };
 
   return (
-    <Paper elevation={3} sx={{ padding: 4, margin: 'auto', maxWidth: 600 }}>
+    <Paper elevation={3} sx={{ padding: 4, margin: 'auto', maxWidth: 600, mt: 2, mb: 2 }}>
       <Typography variant="h5" component="h3" gutterBottom>
-        Create New Section
+        {isEditMode ? 'Edit Section' : 'Create New Section'}
       </Typography>
       <form onSubmit={handleSubmit}>
         <Box mb={3}>
@@ -72,6 +81,7 @@ const NewSectionForm = ({ onCreate, onCancel }) => {
                 <MenuItem value="text">Text</MenuItem>
                 <MenuItem value="number">Number</MenuItem>
                 <MenuItem value="date">Date</MenuItem>
+                <MenuItem value="duration">Duration</MenuItem>
               </Select>
             </FormControl>
             <IconButton
@@ -99,7 +109,7 @@ const NewSectionForm = ({ onCreate, onCancel }) => {
             Cancel
           </Button>
           <Button type="submit" variant="contained" color="primary">
-            Create
+            {isEditMode ? 'Save Changes' : 'Create'}
           </Button>
         </Box>
       </form>
