@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import {
   Card, CardContent, Typography, Button, IconButton, TextField, Box,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableFooter
 } from '@mui/material';
-import { Add, Delete, Edit } from '@mui/icons-material';
+import { Add, Delete, Edit, BarChart, Save, Cancel } from '@mui/icons-material';
 import NewSectionForm from './NewSectionForm';
 import ConfirmationDialog from './ConfirmationDialog'; // Import the dialog
+import Graph from './Graph';
 
 const Section = ({ section, updateSection, deleteSection }) => {
   const [newEntry, setNewEntry] = useState({});
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmOpen, setConfirmOpen] = useState(false); // State for confirm dialog
+  const [isGraphOpen, setGraphOpen] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState(null);
+  const [editedEntry, setEditedEntry] = useState({});
 
   const handleInputChange = (colName, value) => {
     setNewEntry({ ...newEntry, [colName]: value });
@@ -25,43 +28,96 @@ const Section = ({ section, updateSection, deleteSection }) => {
       : new Date().toISOString().split('T')[0];
 
     const entry = {
-      id: uuidv4(),
+      id: new Date().getTime().toString(), // Simple unique ID
       ...newEntry,
       date: dateValue,
     };
 
-    const updatedSection = {
-      ...section,
-      entries: [...section.entries, entry]
-    };
+    const updatedEntries = [...section.entries, entry];
 
-    updateSection(section.id, updatedSection);
+    updateSection({ 
+      id: section._id, 
+      title: section.title,
+      columns: section.columns,
+      entries: updatedEntries 
+    });
     setNewEntry({});
     setIsAdding(false);
   };
 
   const deleteEntry = (entryId) => {
-    const updatedSection = {
-      ...section,
-      entries: section.entries.filter(entry => entry.id !== entryId)
-    };
-    updateSection(section.id, updatedSection);
+    const updatedEntries = section.entries.filter(entry => entry.id !== entryId);
+    updateSection({ 
+      id: section._id, 
+      title: section.title,
+      columns: section.columns,
+      entries: updatedEntries 
+    });
   };
 
   const handleUpdateSection = (updatedData) => {
-    const updatedSection = {
-      ...section,
-      title: updatedData.title,
+    updateSection({ 
+      id: section._id, 
+      title: updatedData.title, 
       columns: updatedData.columns,
-    };
-    updateSection(section.id, updatedSection);
+      entries: section.entries
+    });
     setIsEditing(false);
   };
 
   const handleDeleteConfirm = () => {
-    deleteSection(section.id);
+    deleteSection({ id: section._id });
     setConfirmOpen(false);
   };
+
+  const handleAddNewEntry = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const dateColumns = section.columns.filter(col => col.type === 'date');
+    const initialEntry = {};
+    dateColumns.forEach(col => {
+      initialEntry[col.name] = today;
+    });
+    setNewEntry(initialEntry);
+    setIsAdding(true);
+  };
+
+  const handleEditEntry = (entry) => {
+    setEditingEntryId(entry.id);
+    setEditedEntry(entry);
+  };
+
+  const handleSaveEntry = () => {
+    const updatedEntries = section.entries.map(entry => 
+      entry.id === editingEntryId ? editedEntry : entry
+    );
+    updateSection({
+      id: section._id,
+      title: section.title,
+      columns: section.columns,
+      entries: updatedEntries
+    });
+    setEditingEntryId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEntryId(null);
+    setEditedEntry({});
+  };
+
+  const handleEditedInputChange = (colName, value) => {
+    setEditedEntry({ ...editedEntry, [colName]: value });
+  };
+
+  const totals = section.columns.reduce((acc, col) => {
+    if (col.type === 'number') {
+      acc[col.name] = section.entries.reduce((sum, entry) => sum + (Number(entry[col.name]) || 0), 0);
+    }
+    return acc;
+  }, {});
+
+  const dateColumnName = section.columns.find(c => c.type === 'date')?.name;
+  const totalDays = dateColumnName ? new Set(section.entries.map(e => e[dateColumnName])).size : 0;
+
 
   if (isEditing) {
     return (
@@ -80,13 +136,16 @@ const Section = ({ section, updateSection, deleteSection }) => {
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h5">{section.title}</Typography>
             <Box>
+              <IconButton onClick={() => setGraphOpen(!isGraphOpen)} color="primary" sx={{ mr: 1 }}>
+                <BarChart />
+              </IconButton>
               <IconButton onClick={() => setIsEditing(true)} color="primary" sx={{ mr: 1 }}>
                 <Edit />
               </IconButton>
               <Button
                 variant="contained"
                 startIcon={<Add />}
-                onClick={() => setIsAdding(!isAdding)}
+                onClick={handleAddNewEntry}
                 sx={{ mr: 1 }}
               >
                 {isAdding ? 'Cancel' : 'Add Entry'}
@@ -101,6 +160,12 @@ const Section = ({ section, updateSection, deleteSection }) => {
               </Button>
             </Box>
           </Box>
+
+          {isGraphOpen && (
+            <Box sx={{ mb: 2 }}>
+              <Graph data={section.entries} columns={section.columns} />
+            </Box>
+          )}
 
           {isAdding && (
             <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
@@ -138,22 +203,59 @@ const Section = ({ section, updateSection, deleteSection }) => {
                 </TableHead>
                 <TableBody>
                   {section.entries.map((entry) => (
-                    <tr key={entry.id}>
-                      {section.columns.map((col, index) => (
-                        <TableCell key={index}>
-                          {col.type === 'date'
-                            ? new Date(entry[col.name]).toLocaleDateString()
-                            : entry[col.name]}
-                        </TableCell>
-                      ))}
-                      <TableCell>
-                        <IconButton onClick={() => deleteEntry(entry.id)} color="error">
-                          <Delete />
-                        </IconButton>
-                      </TableCell>
-                    </tr>
+                    <TableRow key={entry.id}>
+                      {editingEntryId === entry.id ? (
+                        <>
+                          {section.columns.map((col, index) => (
+                            <TableCell key={index}>
+                              <TextField
+                                value={editedEntry[col.name] || ''}
+                                onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
+                              />
+                            </TableCell>
+                          ))}
+                          <TableCell>
+                            <IconButton onClick={handleSaveEntry} color="primary">
+                              <Save />
+                            </IconButton>
+                            <IconButton onClick={handleCancelEdit} color="secondary">
+                              <Cancel />
+                            </IconButton>
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          {section.columns.map((col, index) => (
+                            <TableCell key={index}>
+                              {col.type === 'date'
+                                ? new Date(entry[col.name]).toLocaleDateString()
+                                : entry[col.name]}
+                            </TableCell>
+                          ))}
+                          <TableCell>
+                            <IconButton onClick={() => handleEditEntry(entry)} color="primary">
+                              <Edit />
+                            </IconButton>
+                            <IconButton onClick={() => deleteEntry(entry.id)} color="error">
+                              <Delete />
+                            </IconButton>
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
                   ))}
                 </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell><strong>Total</strong></TableCell>
+                    {section.columns.slice(1).map((col, index) => (
+                      <TableCell key={index} align="right">
+                        <strong>{totals[col.name] ? `${col.name}: ${totals[col.name]}` : ''}</strong>
+                      </TableCell>
+                    ))}
+                    <TableCell align="right"><strong>Total Days: {totalDays}</strong></TableCell>
+                  </TableRow>
+                </TableFooter>
               </Table>
             </TableContainer>
           ) : (
@@ -174,4 +276,3 @@ const Section = ({ section, updateSection, deleteSection }) => {
 };
 
 export default Section;
-

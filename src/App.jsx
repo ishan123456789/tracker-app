@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import SectionList from './components/SectionList.jsx';
 import DailyActivityReport from './components/DailyActivityReport.jsx';
 import {
   Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../convex/_generated/api';
 
 // A custom theme for this app
 const theme = createTheme({
@@ -29,37 +31,10 @@ const theme = createTheme({
 });
 
 function App() {
-  const [sections, setSections] = useState(() => {
-    try {
-      const saved = localStorage.getItem('activity-tracker');
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      console.error("Failed to parse localStorage data:", error);
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('activity-tracker', JSON.stringify(sections));
-    } catch (error) {
-      console.error("Failed to save to localStorage:", error);
-    }
-  }, [sections]);
-
-  const addSection = (section) => {
-    setSections([...sections, section]);
-  };
-
-  const updateSection = (id, updatedSection) => {
-    setSections(sections.map(section =>
-      section.id === id ? updatedSection : section
-    ));
-  };
-
-  const deleteSection = (id) => {
-    setSections(sections.filter(section => section.id !== id));
-  };
+  const sections = useQuery(api.sections.get) || [];
+  const addSection = useMutation(api.sections.add);
+  const updateSection = useMutation(api.sections.update);
+  const deleteSection = useMutation(api.sections.remove);
 
   return (
     <ThemeProvider theme={theme}>
@@ -87,6 +62,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
