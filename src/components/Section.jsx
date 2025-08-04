@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import {
   Card, CardContent, Typography, Button, IconButton, TextField, Box,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableFooter
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableFooter,
+  FormControl, InputLabel, Select, MenuItem, Chip
 } from '@mui/material';
 import { Add, Delete, Edit, BarChart, Save, Cancel } from '@mui/icons-material';
 import NewSectionForm from './NewSectionForm';
-import ConfirmationDialog from './ConfirmationDialog'; // Import the dialog
+import ConfirmationDialog from './ConfirmationDialog';
 import Graph from './Graph';
 
 const Section = ({ section, updateSection, deleteSection }) => {
   const [newEntry, setNewEntry] = useState({});
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isConfirmOpen, setConfirmOpen] = useState(false); // State for confirm dialog
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [isGraphOpen, setGraphOpen] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [editedEntry, setEditedEntry] = useState({});
@@ -28,18 +29,18 @@ const Section = ({ section, updateSection, deleteSection }) => {
       : new Date().toISOString().split('T')[0];
 
     const entry = {
-      id: new Date().getTime().toString(), // Simple unique ID
+      id: new Date().getTime().toString(),
       ...newEntry,
       date: dateValue,
     };
 
     const updatedEntries = [...section.entries, entry];
 
-    updateSection({ 
-      id: section._id, 
+    updateSection({
+      id: section._id,
       title: section.title,
       columns: section.columns,
-      entries: updatedEntries 
+      entries: updatedEntries
     });
     setNewEntry({});
     setIsAdding(false);
@@ -47,18 +48,18 @@ const Section = ({ section, updateSection, deleteSection }) => {
 
   const deleteEntry = (entryId) => {
     const updatedEntries = section.entries.filter(entry => entry.id !== entryId);
-    updateSection({ 
-      id: section._id, 
+    updateSection({
+      id: section._id,
       title: section.title,
       columns: section.columns,
-      entries: updatedEntries 
+      entries: updatedEntries
     });
   };
 
   const handleUpdateSection = (updatedData) => {
-    updateSection({ 
-      id: section._id, 
-      title: updatedData.title, 
+    updateSection({
+      id: section._id,
+      title: updatedData.title,
       columns: updatedData.columns,
       entries: section.entries
     });
@@ -72,10 +73,15 @@ const Section = ({ section, updateSection, deleteSection }) => {
 
   const handleAddNewEntry = () => {
     const today = new Date().toISOString().split('T')[0];
-    const dateColumns = section.columns.filter(col => col.type === 'date');
     const initialEntry = {};
-    dateColumns.forEach(col => {
-      initialEntry[col.name] = today;
+    section.columns.forEach(col => {
+      if (col.type === 'date') {
+        initialEntry[col.name] = today;
+      } else if (col.type === 'dropdown' && col.allowMultiple) {
+        initialEntry[col.name] = [];
+      } else {
+        initialEntry[col.name] = '';
+      }
     });
     setNewEntry(initialEntry);
     setIsAdding(true);
@@ -83,11 +89,11 @@ const Section = ({ section, updateSection, deleteSection }) => {
 
   const handleEditEntry = (entry) => {
     setEditingEntryId(entry.id);
-    setEditedEntry(entry);
+    setEditedEntry({ ...entry });
   };
 
   const handleSaveEntry = () => {
-    const updatedEntries = section.entries.map(entry => 
+    const updatedEntries = section.entries.map(entry =>
       entry.id === editingEntryId ? editedEntry : entry
     );
     updateSection({
@@ -118,7 +124,6 @@ const Section = ({ section, updateSection, deleteSection }) => {
   const dateColumnName = section.columns.find(c => c.type === 'date')?.name;
   const totalDays = dateColumnName ? new Set(section.entries.map(e => e[dateColumnName])).size : 0;
 
-
   if (isEditing) {
     return (
       <NewSectionForm
@@ -128,6 +133,16 @@ const Section = ({ section, updateSection, deleteSection }) => {
       />
     );
   }
+
+  const renderCellContent = (col, value) => {
+    if (col.type === 'date' && value) {
+      return new Date(value).toLocaleDateString();
+    }
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    return value;
+  };
 
   return (
     <>
@@ -145,7 +160,7 @@ const Section = ({ section, updateSection, deleteSection }) => {
               <Button
                 variant="contained"
                 startIcon={<Add />}
-                onClick={handleAddNewEntry}
+                onClick={isAdding ? () => setIsAdding(false) : handleAddNewEntry}
                 sx={{ mr: 1 }}
               >
                 {isAdding ? 'Cancel' : 'Add Entry'}
@@ -154,7 +169,7 @@ const Section = ({ section, updateSection, deleteSection }) => {
                 variant="outlined"
                 color="error"
                 startIcon={<Delete />}
-                onClick={() => setConfirmOpen(true)} // Open confirm dialog
+                onClick={() => setConfirmOpen(true)}
               >
                 Delete Section
               </Button>
@@ -171,18 +186,51 @@ const Section = ({ section, updateSection, deleteSection }) => {
             <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
               <Typography variant="h6" gutterBottom>New Entry</Typography>
               <Box display="flex" flexDirection="column" gap={2}>
-                {section.columns.map((col, index) => (
-                  <TextField
-                    key={index}
-                    label={col.name}
-                    type={col.type === 'duration' ? 'text' : col.type}
-                    value={newEntry[col.name] || ''}
-                    onChange={(e) => handleInputChange(col.name, e.target.value)}
-                    variant="outlined"
-                    fullWidth
-                    InputLabelProps={col.type === 'date' || col.type === 'time' ? { shrink: true } : {}}
-                  />
-                ))}
+                {section.columns.map((col, index) => {
+                  if (col.type === 'dropdown') {
+                    return (
+                      <FormControl key={index} fullWidth>
+                        <InputLabel>{col.name}</InputLabel>
+                        <Select
+                          multiple={col.allowMultiple}
+                          value={newEntry[col.name] || (col.allowMultiple ? [] : '')}
+                          onChange={(e) => handleInputChange(col.name, e.target.value)}
+                          label={col.name}
+                          renderValue={(selected) => {
+                            if (col.allowMultiple) {
+                              return (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                  {(selected || []).map((value) => (
+                                    <Chip key={value} label={value} />
+                                  ))}
+                                </Box>
+                              );
+                            }
+                            return selected;
+                          }}
+                        >
+                          {(col.options || []).map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    );
+                  }
+                  return (
+                    <TextField
+                      key={index}
+                      label={col.name}
+                      type={col.type === 'duration' ? 'text' : col.type}
+                      value={newEntry[col.name] || ''}
+                      onChange={(e) => handleInputChange(col.name, e.target.value)}
+                      variant="outlined"
+                      fullWidth
+                      InputLabelProps={col.type === 'date' || col.type === 'time' ? { shrink: true } : {}}
+                    />
+                  );
+                })}
                 <Button onClick={addEntry} variant="contained" color="primary">
                   Save Entry
                 </Button>
@@ -208,37 +256,44 @@ const Section = ({ section, updateSection, deleteSection }) => {
                         <>
                           {section.columns.map((col, index) => (
                             <TableCell key={index}>
-                              <TextField
-                                value={editedEntry[col.name] || ''}
-                                onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
-                              />
+                              {col.type === 'dropdown' ? (
+                                <FormControl fullWidth variant="standard">
+                                  <Select
+                                    multiple={col.allowMultiple}
+                                    value={editedEntry[col.name] || (col.allowMultiple ? [] : '')}
+                                    onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
+                                  >
+                                    {(col.options || []).map(option => (
+                                      <MenuItem key={option} value={option}>{option}</MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
+                              ) : (
+                                <TextField
+                                  value={editedEntry[col.name] || ''}
+                                  onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
+                                  type={col.type === 'duration' ? 'text' : col.type}
+                                  fullWidth
+                                  variant="standard"
+                                />
+                              )}
                             </TableCell>
                           ))}
                           <TableCell>
-                            <IconButton onClick={handleSaveEntry} color="primary">
-                              <Save />
-                            </IconButton>
-                            <IconButton onClick={handleCancelEdit} color="secondary">
-                              <Cancel />
-                            </IconButton>
+                            <IconButton onClick={handleSaveEntry} color="primary"><Save /></IconButton>
+                            <IconButton onClick={handleCancelEdit} color="secondary"><Cancel /></IconButton>
                           </TableCell>
                         </>
                       ) : (
                         <>
                           {section.columns.map((col, index) => (
                             <TableCell key={index}>
-                              {col.type === 'date'
-                                ? new Date(entry[col.name]).toLocaleDateString()
-                                : entry[col.name]}
+                              {renderCellContent(col, entry[col.name])}
                             </TableCell>
                           ))}
                           <TableCell>
-                            <IconButton onClick={() => handleEditEntry(entry)} color="primary">
-                              <Edit />
-                            </IconButton>
-                            <IconButton onClick={() => deleteEntry(entry.id)} color="error">
-                              <Delete />
-                            </IconButton>
+                            <IconButton onClick={() => handleEditEntry(entry)} color="primary"><Edit /></IconButton>
+                            <IconButton onClick={() => deleteEntry(entry.id)} color="error"><Delete /></IconButton>
                           </TableCell>
                         </>
                       )}

@@ -11,7 +11,14 @@ export const get = query({
 export const add = mutation({
   args: {
     title: v.string(),
-    columns: v.array(v.object({ name: v.string(), type: v.string() })),
+    columns: v.array(
+      v.object({
+        name: v.string(),
+        type: v.string(),
+        options: v.optional(v.array(v.string())),
+        allowMultiple: v.optional(v.boolean()),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const { title, columns } = args;
@@ -23,7 +30,14 @@ export const update = mutation({
   args: {
     id: v.id("sections"),
     title: v.string(),
-    columns: v.array(v.object({ name: v.string(), type: v.string() })),
+    columns: v.array(
+      v.object({
+        name: v.string(),
+        type: v.string(),
+        options: v.optional(v.array(v.string())),
+        allowMultiple: v.optional(v.boolean()),
+      })
+    ),
     entries: v.array(v.any()),
   },
   handler: async (ctx, args) => {
