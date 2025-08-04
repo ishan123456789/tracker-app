@@ -42,7 +42,7 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div">
-            Activity Tracker
+            Daily Activity Tracker
           </Typography>
         </Toolbar>
       </AppBar>
