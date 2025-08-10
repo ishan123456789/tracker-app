@@ -2,7 +2,7 @@ import React from 'react';
 import SectionList from './components/SectionList.jsx';
 import DailyActivityReport from './components/DailyActivityReport.jsx';
 import {
-  Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper
+  Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper, Button
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { useQuery, useMutation } from 'convex/react';
@@ -36,14 +36,45 @@ function App() {
   const updateSection = useMutation(api.sections.update);
   const deleteSection = useMutation(api.sections.remove);
 
+  const handleExportCsv = () => {
+    const allHeaders = new Set();
+    sections.forEach(section => {
+      section.columns.forEach(col => allHeaders.add(col.name));
+    });
+
+    const headers = ['Section Title', ...Array.from(allHeaders)];
+    const csvRows = [headers.join(',')];
+
+    sections.forEach(section => {
+      section.entries.forEach(entry => {
+        const row = [section.title];
+        Array.from(allHeaders).forEach(header => {
+          row.push(entry[header] || '');
+        });
+        csvRows.push(row.join(','));
+      });
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'activity_export.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" component="div">
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Daily Activity Tracker
           </Typography>
+          <Button color="inherit" onClick={handleExportCsv}>Export to CSV</Button>
         </Toolbar>
       </AppBar>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>

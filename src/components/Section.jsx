@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Card, CardContent, Typography, Button, IconButton, TextField, Box,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableFooter,
-  FormControl, InputLabel, Select, MenuItem, Chip
+  FormControl, InputLabel, Select, MenuItem, Chip, Checkbox, FormControlLabel
 } from '@mui/material';
 import { Add, Delete, Edit, BarChart, Save, Cancel } from '@mui/icons-material';
 import NewSectionForm from './NewSectionForm';
@@ -17,6 +17,7 @@ const Section = ({ section, updateSection, deleteSection }) => {
   const [isGraphOpen, setGraphOpen] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [editedEntry, setEditedEntry] = useState({});
+  const [showAll, setShowAll] = useState(false);
 
   const handleInputChange = (colName, value) => {
     setNewEntry({ ...newEntry, [colName]: value });
@@ -24,15 +25,17 @@ const Section = ({ section, updateSection, deleteSection }) => {
 
   const addEntry = () => {
     const dateColumn = section.columns.find(col => col.type === 'date');
-    const dateValue = dateColumn && newEntry[dateColumn.name]
-      ? newEntry[dateColumn.name]
-      : new Date().toISOString().split('T')[0];
-
     const entry = {
       id: new Date().getTime().toString(),
       ...newEntry,
-      date: dateValue,
     };
+
+    if (dateColumn) {
+      const dateValue = newEntry[dateColumn.name]
+        ? newEntry[dateColumn.name]
+        : new Date().toISOString().split('T')[0];
+      entry[dateColumn.name] = dateValue;
+    }
 
     const updatedEntries = [...section.entries, entry];
 
@@ -114,6 +117,33 @@ const Section = ({ section, updateSection, deleteSection }) => {
     setEditedEntry({ ...editedEntry, [colName]: value });
   };
 
+  const dateColumnName = section.columns.find(c => c.type === 'date')?.name;
+
+  const sortedEntries = dateColumnName
+    ? [...section.entries].sort((a, b) => new Date(b[dateColumnName]) - new Date(a[dateColumnName]))
+    : section.entries;
+
+  const handleQuickAdd = () => {
+    const lastEntry = sortedEntries[0];
+    if (!lastEntry) return;
+
+    const newEntry = { ...lastEntry };
+    newEntry.id = new Date().getTime().toString();
+
+    if (dateColumnName) {
+      newEntry[dateColumnName] = new Date().toISOString().split('T')[0];
+    }
+
+    const updatedEntries = [...section.entries, newEntry];
+
+    updateSection({
+      id: section._id,
+      title: section.title,
+      columns: section.columns,
+      entries: updatedEntries
+    });
+  };
+
   const totals = section.columns.reduce((acc, col) => {
     if (col.type === 'number') {
       acc[col.name] = section.entries.reduce((sum, entry) => sum + (Number(entry[col.name]) || 0), 0);
@@ -121,7 +151,6 @@ const Section = ({ section, updateSection, deleteSection }) => {
     return acc;
   }, {});
 
-  const dateColumnName = section.columns.find(c => c.type === 'date')?.name;
   const totalDays = dateColumnName ? new Set(section.entries.map(e => e[dateColumnName])).size : 0;
 
   if (isEditing) {
@@ -143,6 +172,16 @@ const Section = ({ section, updateSection, deleteSection }) => {
     }
     return value;
   };
+
+  const lastEntry = sortedEntries.length > 0 ? sortedEntries[0] : null;
+  const lastEntryLabel = lastEntry
+    ? `Quick Add: ${section.columns
+        .filter(col => col.type !== 'date' && lastEntry[col.name])
+        .map(col => `${col.name}: ${Array.isArray(lastEntry[col.name]) ? lastEntry[col.name].join(', ') : lastEntry[col.name]}`)
+        .join(', ')}`
+    : 'No entries to quick add';
+
+  const visibleEntries = showAll ? sortedEntries : sortedEntries.slice(0, 3);
 
   return (
     <>
@@ -175,6 +214,15 @@ const Section = ({ section, updateSection, deleteSection }) => {
               </Button>
             </Box>
           </Box>
+
+          {section.entries.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <FormControlLabel
+                control={<Checkbox onChange={handleQuickAdd} disabled={!lastEntry} />}
+                label={lastEntryLabel}
+              />
+            </Box>
+          )}
 
           {isGraphOpen && (
             <Box sx={{ mb: 2 }}>
@@ -250,7 +298,7 @@ const Section = ({ section, updateSection, deleteSection }) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {section.entries.map((entry) => (
+                  {visibleEntries.map((entry) => (
                     <TableRow key={entry.id}>
                       {editingEntryId === entry.id ? (
                         <>
@@ -309,6 +357,13 @@ const Section = ({ section, updateSection, deleteSection }) => {
                       </TableCell>
                     ))}
                     <TableCell align="right"><strong>Total Days: {totalDays}</strong></TableCell>
+                    {sortedEntries.length > 3 && (
+                      <TableCell colSpan={section.columns.length + 1} align="center">
+                        <Button onClick={() => setShowAll(!showAll)}>
+                          {showAll ? 'Show Less' : 'View All'}
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 </TableFooter>
               </Table>
