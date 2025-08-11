@@ -7,11 +7,14 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const DailyActivityReport = ({ sections }) => {
-  // Get all unique dates directly from the entry strings and sort them
-  const allDates = sections.flatMap(section =>
-    section.entries.map(entry => entry.date)
-  );
-  const uniqueDates = [...new Set(allDates)].sort((a, b) => b.localeCompare(a));
+  const allDates = sections.flatMap(section => {
+    const dateColumn = section.columns.find(c => c.type === 'date');
+    if (!dateColumn) {
+      return [];
+    }
+    return section.entries.map(entry => entry[dateColumn.name]).filter(Boolean);
+  });
+  const uniqueDates = [...new Set(allDates)].sort((a, b) => new Date(b) - new Date(a));
 
   if (uniqueDates.length === 0) {
     return (
@@ -31,8 +34,11 @@ const DailyActivityReport = ({ sections }) => {
       </Typography>
       {uniqueDates.map(date => {
         const dailyActivities = sections.map(section => {
-          // Filter by direct string comparison
-          const entriesForDate = section.entries.filter(entry => entry.date === date);
+          const dateColumn = section.columns.find(c => c.type === 'date');
+          let entriesForDate = [];
+          if (dateColumn) {
+            entriesForDate = section.entries.filter(entry => entry[dateColumn.name] === date);
+          }
           return {
             sectionTitle: section.title,
             entries: entriesForDate,
@@ -43,7 +49,6 @@ const DailyActivityReport = ({ sections }) => {
         return (
           <Accordion key={date} defaultExpanded={date === new Date().toISOString().split('T')[0]}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              {/* Replace hyphens to parse date as local time for display */}
               <Typography variant="h6">{new Date(date.replace(/-/g, '/')).toLocaleDateString()}</Typography>
             </AccordionSummary>
             <AccordionDetails>
@@ -75,7 +80,7 @@ const DailyActivityReport = ({ sections }) => {
                                   <ListItemText
                                     primary={
                                       activity.columns
-                                        .map(col => col.name !== 'Date' && `${col.name}: ${entry[col.name] || 'N/A'}`)
+                                        .map(col => col.type !== 'date' && `${col.name}: ${entry[col.name] || 'N/A'}`)
                                         .filter(Boolean)
                                         .join(', ')
                                     }

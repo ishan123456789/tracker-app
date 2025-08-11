@@ -43,20 +43,32 @@ function App() {
     });
 
     const headers = ['Section Title', ...Array.from(allHeaders)];
-    const csvRows = [headers.join(',')];
+
+    const escapeCsvCell = (cell) => {
+      if (cell === null || cell === undefined) {
+        return '';
+      }
+      let cellString = Array.isArray(cell) ? cell.join('; ') : String(cell);
+      if (cellString.includes(',') || cellString.includes('"') || cellString.includes('\n')) {
+        cellString = `"${cellString.replace(/"/g, '""')}"`;
+      }
+      return cellString;
+    };
+
+    const csvRows = [headers.map(escapeCsvCell).join(',')];
 
     sections.forEach(section => {
       section.entries.forEach(entry => {
         const row = [section.title];
         Array.from(allHeaders).forEach(header => {
-          row.push(entry[header] || '');
+          row.push(entry[header]);
         });
-        csvRows.push(row.join(','));
+        csvRows.push(row.map(escapeCsvCell).join(','));
       });
     });
 
     const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv' });
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
