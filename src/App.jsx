@@ -1,6 +1,6 @@
 import React from 'react';
 import SectionList from './components/SectionList.jsx';
-import DailyActivityReport from './components/DailyActivityReport.jsx';
+import TodoList from './components/TodoList.jsx';
 import {
   Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper, Button
 } from '@mui/material';
@@ -91,13 +91,13 @@ function App() {
       </AppBar>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+          <TodoList />
           <SectionList
             sections={sections}
             addSection={addSection}
             updateSection={updateSection}
             deleteSection={deleteSection}
           />
-          <DailyActivityReport sections={sections} />
         </Paper>
       </Container>
     </ThemeProvider>
@@ -105,6 +105,7 @@ function App() {
 }
 
 export default App;
+
 
 
 

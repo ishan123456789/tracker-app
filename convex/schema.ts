@@ -14,4 +14,11 @@ export default defineSchema({
     ),
     entries: v.array(v.any()),
   }),
+  todos: defineTable({
+    text: v.string(),
+    done: v.boolean(),
+    doneAt: v.optional(v.number()),
+    deadline: v.optional(v.string()),
+    position: v.optional(v.number()),
+  }),
 });
