@@ -772,6 +772,16 @@ export const TodoItem = ({
               vertical: 'top',
               horizontal: 'right',
             }}
+            slotProps={{
+              paper: {
+                style: {
+                  maxHeight: '400px',
+                  width: '200px',
+                  zIndex: 9999
+                }
+              }
+            }}
+            disablePortal={false}
           >
             <MenuItem onClick={handleEdit}>
               <NotesIcon sx={{ mr: 1, fontSize: 16 }} />
