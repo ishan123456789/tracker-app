@@ -393,9 +393,10 @@ async function getMaxPosition(ctx: any): Promise<number> {
 }
 
 function calculateNextDueDate(todo: any): string | null {
-  if (!todo.deadline || !todo.recurringPattern) return null;
+  if (!todo.recurringPattern) return null;
 
-  const currentDate = new Date(todo.deadline);
+  // Use deadline if available, otherwise use current date
+  const currentDate = todo.deadline ? new Date(todo.deadline) : new Date();
 
   switch (todo.recurringPattern) {
     case "daily":

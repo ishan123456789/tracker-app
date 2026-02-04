@@ -137,12 +137,8 @@ export const TodoItem = ({
 
   const handleToggle = async () => {
     if (todo.done) {
-      // If unchecking, just update normally
-      if (todo.isRecurring) {
-        await completeRecurringTask({ id: todo._id });
-      } else {
-        await handleToggleTodo(todo._id, todo.done);
-      }
+      // If unchecking a completed task, just mark as not done (don't create new recurring instances)
+      await handleToggleTodo(todo._id, todo.done);
       onUpdate?.();
       return;
     }
@@ -153,7 +149,7 @@ export const TodoItem = ({
       return;
     }
 
-    // Otherwise, complete normally
+    // When completing a task, use recurring logic if it's a recurring task
     if (todo.isRecurring) {
       await completeRecurringTask({ id: todo._id });
     } else {
