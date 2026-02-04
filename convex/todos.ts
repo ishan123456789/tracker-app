@@ -75,8 +75,8 @@ export const update = mutation({
   args: {
     id: v.id("todos"),
     done: v.optional(v.boolean()),
-    deadline: v.optional(v.string()),
-    dueTime: v.optional(v.string()),
+    deadline: v.optional(v.union(v.string(), v.null())),
+    dueTime: v.optional(v.union(v.string(), v.null())),
     priority: v.optional(v.union(v.literal("high"), v.literal("medium"), v.literal("low"))),
     // Hierarchical category fields
     mainCategory: v.optional(v.string()),
@@ -85,13 +85,13 @@ export const update = mutation({
     // Legacy category field for backward compatibility
     category: v.optional(v.string()),
     text: v.optional(v.string()),
-    notes: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    estimatedMinutes: v.optional(v.number()),
+    notes: v.optional(v.union(v.string(), v.null())),
+    tags: v.optional(v.union(v.array(v.string()), v.null())),
+    estimatedMinutes: v.optional(v.float64()),
     isRecurring: v.optional(v.boolean()),
     recurringPattern: v.optional(v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("custom"))),
-    recurringInterval: v.optional(v.number()),
-    recurringDays: v.optional(v.array(v.number())),
+    recurringInterval: v.optional(v.float64()),
+    recurringDays: v.optional(v.array(v.float64())),
   },
   handler: async (ctx, args) => {
     const { id, ...rest } = args;
@@ -239,6 +239,11 @@ export const completeRecurringTask = mutation({
         deadline: nextDate,
         dueTime: todo.dueTime,
         priority: todo.priority,
+        // Hierarchical category fields
+        mainCategory: todo.mainCategory,
+        subcategory: todo.subcategory,
+        activityType: todo.activityType,
+        // Legacy category field for backward compatibility
         category: todo.category,
         estimatedMinutes: todo.estimatedMinutes,
         notes: todo.notes,

@@ -17,7 +17,6 @@ const RecurringTaskDialog = ({ isOpen, onClose, onSave, initialData = {} }) => {
         recurringPattern: initialData.recurringPattern || 'daily',
         recurringInterval: initialData.recurringInterval || 1,
         recurringDays: initialData.recurringDays || [],
-        ...initialData
       });
     }
   }, [isOpen, initialData]);

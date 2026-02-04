@@ -308,7 +308,13 @@ export const TodoItem = ({
   };
 
   const handleRecurringSave = async (recurringData) => {
-    await updateTodo({ id: todo._id, ...recurringData });
+    // If setting as recurring and no deadline exists, set today as deadline
+    const updateData = { ...recurringData };
+    if (recurringData.isRecurring && !todo.deadline) {
+      updateData.deadline = new Date().toISOString().split('T')[0];
+    }
+
+    await updateTodo({ id: todo._id, ...updateData });
     onUpdate?.();
   };
 
@@ -650,51 +656,56 @@ export const TodoItem = ({
           {/* Metadata Row */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
             {/* Deadline */}
-            {(todo.deadline || editingDeadline) && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <ScheduleIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                {editingDeadline ? (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      type="date"
-                      value={editDeadline}
-                      onChange={(e) => setEditDeadline(e.target.value)}
-                      onBlur={handleSaveDeadline}
-                      size="small"
-                      variant="standard"
-                    />
-                    <TextField
-                      type="time"
-                      value={editDueTime}
-                      onChange={(e) => setEditDueTime(e.target.value)}
-                      onBlur={handleSaveDeadline}
-                      size="small"
-                      variant="standard"
-                    />
-                  </Box>
-                ) : (
-                  <Typography
-                    variant="caption"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingDeadline(true);
-                    }}
-                    sx={{
-                      cursor: 'pointer',
-                      color: isPastDeadline ? 'error.main' : 'text.secondary',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                        borderRadius: 1,
-                        px: 0.5
-                      }
-                    }}
-                  >
-                    {new Date(todo.deadline).toLocaleDateString()}
-                    {todo.dueTime && ` ${todo.dueTime}`}
-                  </Typography>
-                )}
-              </Box>
-            )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <ScheduleIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+              {editingDeadline ? (
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    type="date"
+                    value={editDeadline}
+                    onChange={(e) => setEditDeadline(e.target.value)}
+                    onBlur={handleSaveDeadline}
+                    size="small"
+                    variant="standard"
+                  />
+                  <TextField
+                    type="time"
+                    value={editDueTime}
+                    onChange={(e) => setEditDueTime(e.target.value)}
+                    onBlur={handleSaveDeadline}
+                    size="small"
+                    variant="standard"
+                  />
+                </Box>
+              ) : (
+                <Typography
+                  variant="caption"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingDeadline(true);
+                  }}
+                  sx={{
+                    cursor: 'pointer',
+                    color: todo.deadline ? (isPastDeadline ? 'error.main' : 'text.secondary') : 'text.disabled',
+                    fontStyle: todo.deadline ? 'normal' : 'italic',
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                      borderRadius: 1,
+                      px: 0.5
+                    }
+                  }}
+                >
+                  {todo.deadline ? (
+                    <>
+                      {new Date(todo.deadline).toLocaleDateString()}
+                      {todo.dueTime && ` ${todo.dueTime}`}
+                    </>
+                  ) : (
+                    'No deadline set'
+                  )}
+                </Typography>
+              )}
+            </Box>
 
             {/* Timer Status */}
             {isRunning && (
@@ -793,6 +804,10 @@ export const TodoItem = ({
             <MenuItem onClick={() => { setEditingPriority(true); handleMenuClose(); }}>
               <FlagIcon sx={{ mr: 1, fontSize: 16 }} />
               Edit Priority
+            </MenuItem>
+            <MenuItem onClick={() => { setEditingDeadline(true); handleMenuClose(); }}>
+              <ScheduleIcon sx={{ mr: 1, fontSize: 16 }} />
+              Edit Deadline
             </MenuItem>
             <Divider />
             <MenuItem onClick={handleDuplicate} disabled={isDuplicating}>
