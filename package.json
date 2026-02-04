@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run build:convex && vite build",
-    "build:convex": "npx convex deploy --prod && npx convex run categoryHierarchy:initializeCategoryHierarchy --prod",
+    "build:convex": "npx convex deploy && npx convex run categoryHierarchy:initializeCategoryHierarchy",
     "lint": "eslint .",
     "preview": "vite preview",
     "dev:prod": "cross-env VITE_ENV=production vite"
