@@ -4,10 +4,11 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableFooter,
   FormControl, InputLabel, Select, MenuItem, Chip, Checkbox, FormControlLabel
 } from '@mui/material';
-import { Add, Delete, Edit, BarChart, Save, Cancel } from '@mui/icons-material';
+import { Add, Delete, Edit, BarChart, Save, Cancel, ShowChart } from '@mui/icons-material';
 import NewSectionForm from './NewSectionForm';
 import ConfirmationDialog from './ConfirmationDialog';
 import Graph from './Graph';
+import ChartSelector from './ChartSelector';
 
 const Section = ({ section, updateSection, deleteSection }) => {
   const [newEntry, setNewEntry] = useState({});
@@ -18,6 +19,8 @@ const Section = ({ section, updateSection, deleteSection }) => {
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [editedEntry, setEditedEntry] = useState({});
   const [showAll, setShowAll] = useState(false);
+  const [chartType, setChartType] = useState('line');
+  const [showChartSelector, setShowChartSelector] = useState(false);
 
   const handleInputChange = (colName, value) => {
     setNewEntry({ ...newEntry, [colName]: value });
@@ -226,7 +229,39 @@ const Section = ({ section, updateSection, deleteSection }) => {
 
           {isGraphOpen && (
             <Box sx={{ mb: 2 }}>
-              <Graph data={section.entries} columns={section.columns} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  📊 {section.title} Analytics
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ShowChart />}
+                  onClick={() => setShowChartSelector(!showChartSelector)}
+                >
+                  Chart Options
+                </Button>
+              </Box>
+
+              {showChartSelector && (
+                <ChartSelector
+                  chartType={chartType}
+                  onChartTypeChange={setChartType}
+                  showDateFilter={false}
+                  showMetricFilter={false}
+                  showChartOptions={true}
+                />
+              )}
+
+              <Graph
+                data={section.entries}
+                columns={section.columns}
+                chartType={chartType}
+                onChartTypeChange={setChartType}
+                title={`${section.title} Data Visualization`}
+                height={350}
+                showExport={true}
+              />
             </Box>
           )}
 

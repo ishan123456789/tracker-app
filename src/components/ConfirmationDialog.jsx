@@ -1,29 +1,81 @@
 import React from 'react';
-import {
-  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button
-} from '@mui/material';
+import './ConfirmationDialog.css';
 
-const ConfirmationDialog = ({ open, onClose, onConfirm, title, description }) => {
+const ConfirmationDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title = "Confirm Action",
+  message = "Are you sure you want to proceed?",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  isDestructive = false,
+  isLoading = false
+}) => {
+  if (!isOpen) return null;
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      onClose();
+    } else if (e.key === 'Enter') {
+      onConfirm();
+    }
+  };
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
+    <div
+      className="confirmation-overlay"
+      onClick={handleBackdropClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
     >
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        <DialogContentText>
-          {description}
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="primary">
-          Cancel
-        </Button>
-        <Button onClick={onConfirm} color="error" autoFocus>
-          Confirm
-        </Button>
-      </DialogActions>
-    </Dialog>
+      <div className="confirmation-dialog">
+        <div className="confirmation-header">
+          <h3>{title}</h3>
+          <button
+            onClick={onClose}
+            className="close-button"
+            disabled={isLoading}
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="confirmation-body">
+          <p>{message}</p>
+        </div>
+
+        <div className="confirmation-actions">
+          <button
+            onClick={onClose}
+            className="cancel-button"
+            disabled={isLoading}
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`confirm-button ${isDestructive ? 'destructive' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="loading-spinner"></span>
+                Processing...
+              </>
+            ) : (
+              confirmText
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
