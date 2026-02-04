@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   Card, CardContent, Typography, Button, IconButton, TextField, Box,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TableFooter,
-  FormControl, InputLabel, Select, MenuItem, Chip, Checkbox, FormControlLabel
+  FormControl, InputLabel, Select, MenuItem, Chip, Checkbox, FormControlLabel,
+  useMediaQuery, useTheme, Grid, Divider
 } from '@mui/material';
 import { Add, Delete, Edit, BarChart, Save, Cancel, ShowChart } from '@mui/icons-material';
 import NewSectionForm from './NewSectionForm';
@@ -21,6 +22,9 @@ const Section = ({ section, updateSection, deleteSection }) => {
   const [showAll, setShowAll] = useState(false);
   const [chartType, setChartType] = useState('line');
   const [showChartSelector, setShowChartSelector] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleInputChange = (colName, value) => {
     setNewEntry({ ...newEntry, [colName]: value });
@@ -176,6 +180,98 @@ const Section = ({ section, updateSection, deleteSection }) => {
     return value;
   };
 
+  // Mobile Card Component for entries
+  const MobileEntryCard = ({ entry, isEditing }) => (
+    <Card
+      sx={{
+        mb: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        '&:hover': {
+          borderColor: 'primary.main',
+          boxShadow: 2
+        }
+      }}
+    >
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        {isEditing ? (
+          <Box>
+            {section.columns.map((col, index) => (
+              <Box key={index} sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                  {col.name}
+                </Typography>
+                {col.type === 'dropdown' ? (
+                  <FormControl fullWidth size="small">
+                    <Select
+                      multiple={col.allowMultiple}
+                      value={editedEntry[col.name] || (col.allowMultiple ? [] : '')}
+                      onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
+                      displayEmpty
+                    >
+                      {(col.options || []).map(option => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                ) : (
+                  <TextField
+                    value={editedEntry[col.name] || ''}
+                    onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
+                    type={col.type === 'duration' ? 'text' : col.type}
+                    fullWidth
+                    size="small"
+                    variant="outlined"
+                  />
+                )}
+              </Box>
+            ))}
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>
+              <IconButton onClick={handleSaveEntry} color="primary" size="small">
+                <Save />
+              </IconButton>
+              <IconButton onClick={handleCancelEdit} color="secondary" size="small">
+                <Cancel />
+              </IconButton>
+            </Box>
+          </Box>
+        ) : (
+          <Box>
+            {section.columns.map((col, index) => (
+              <Box key={index} sx={{ mb: 1.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                  {col.name}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  {renderCellContent(col, entry[col.name]) || '-'}
+                </Typography>
+              </Box>
+            ))}
+            <Divider sx={{ my: 1.5 }} />
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+              <IconButton
+                onClick={() => handleEditEntry(entry)}
+                color="primary"
+                size="small"
+                sx={{ minWidth: 48, minHeight: 48 }}
+              >
+                <Edit />
+              </IconButton>
+              <IconButton
+                onClick={() => deleteEntry(entry.id)}
+                color="error"
+                size="small"
+                sx={{ minWidth: 48, minHeight: 48 }}
+              >
+                <Delete />
+              </IconButton>
+            </Box>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   const lastEntry = sortedEntries.length > 0 ? sortedEntries[0] : null;
   const lastEntryLabel = lastEntry
     ? `Quick Add: ${section.columns
@@ -190,32 +286,80 @@ const Section = ({ section, updateSection, deleteSection }) => {
     <>
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h5">{section.title}</Typography>
-            <Box>
-              <IconButton onClick={() => setGraphOpen(!isGraphOpen)} color="primary" sx={{ mr: 1 }}>
-                <BarChart />
-              </IconButton>
-              <IconButton onClick={() => setIsEditing(true)} color="primary" sx={{ mr: 1 }}>
-                <Edit />
-              </IconButton>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={isAdding ? () => setIsAdding(false) : handleAddNewEntry}
-                sx={{ mr: 1 }}
-              >
-                {isAdding ? 'Cancel' : 'Add Entry'}
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<Delete />}
-                onClick={() => setConfirmOpen(true)}
-              >
-                Delete Section
-              </Button>
+          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+            <Typography variant={isMobile ? "h6" : "h5"} sx={{ flex: 1, mr: 2 }}>
+              {section.title}
+            </Typography>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 1,
+              alignItems: isMobile ? 'flex-end' : 'center'
+            }}>
+              {isMobile ? (
+                // Mobile: Compact icon buttons
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <IconButton
+                    onClick={() => setGraphOpen(!isGraphOpen)}
+                    color="primary"
+                    size="small"
+                    sx={{ minWidth: 48, minHeight: 48 }}
+                  >
+                    <BarChart />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => setIsEditing(true)}
+                    color="primary"
+                    size="small"
+                    sx={{ minWidth: 48, minHeight: 48 }}
+                  >
+                    <Edit />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => setConfirmOpen(true)}
+                    color="error"
+                    size="small"
+                    sx={{ minWidth: 48, minHeight: 48 }}
+                  >
+                    <Delete />
+                  </IconButton>
+                </Box>
+              ) : (
+                // Desktop: Full buttons
+                <>
+                  <IconButton onClick={() => setGraphOpen(!isGraphOpen)} color="primary" sx={{ mr: 1 }}>
+                    <BarChart />
+                  </IconButton>
+                  <IconButton onClick={() => setIsEditing(true)} color="primary" sx={{ mr: 1 }}>
+                    <Edit />
+                  </IconButton>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<Delete />}
+                    onClick={() => setConfirmOpen(true)}
+                  >
+                    Delete Section
+                  </Button>
+                </>
+              )}
             </Box>
+          </Box>
+
+          {/* Add Entry Button - Full width on mobile */}
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={isAdding ? () => setIsAdding(false) : handleAddNewEntry}
+              fullWidth={isMobile}
+              sx={{
+                minHeight: isMobile ? 48 : 'auto',
+                fontSize: isMobile ? '1rem' : 'inherit'
+              }}
+            >
+              {isAdding ? 'Cancel' : 'Add Entry'}
+            </Button>
           </Box>
 
           {section.entries.length > 0 && (
@@ -322,87 +466,142 @@ const Section = ({ section, updateSection, deleteSection }) => {
           )}
 
           {section.entries.length > 0 ? (
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    {section.columns.map((col, index) => (
-                      <TableCell key={index}>{col.name}</TableCell>
-                    ))}
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
+            <>
+              {isMobile ? (
+                // Mobile Card Layout
+                <Box>
                   {visibleEntries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      {editingEntryId === entry.id ? (
-                        <>
-                          {section.columns.map((col, index) => (
-                            <TableCell key={index}>
-                              {col.type === 'dropdown' ? (
-                                <FormControl fullWidth variant="standard">
-                                  <Select
-                                    multiple={col.allowMultiple}
-                                    value={editedEntry[col.name] || (col.allowMultiple ? [] : '')}
-                                    onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
-                                  >
-                                    {(col.options || []).map(option => (
-                                      <MenuItem key={option} value={option}>{option}</MenuItem>
-                                    ))}
-                                  </Select>
-                                </FormControl>
-                              ) : (
-                                <TextField
-                                  value={editedEntry[col.name] || ''}
-                                  onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
-                                  type={col.type === 'duration' ? 'text' : col.type}
-                                  fullWidth
-                                  variant="standard"
-                                />
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell>
-                            <IconButton onClick={handleSaveEntry} color="primary"><Save /></IconButton>
-                            <IconButton onClick={handleCancelEdit} color="secondary"><Cancel /></IconButton>
-                          </TableCell>
-                        </>
-                      ) : (
-                        <>
-                          {section.columns.map((col, index) => (
-                            <TableCell key={index}>
-                              {renderCellContent(col, entry[col.name])}
-                            </TableCell>
-                          ))}
-                          <TableCell>
-                            <IconButton onClick={() => handleEditEntry(entry)} color="primary"><Edit /></IconButton>
-                            <IconButton onClick={() => deleteEntry(entry.id)} color="error"><Delete /></IconButton>
-                          </TableCell>
-                        </>
-                      )}
-                    </TableRow>
+                    <MobileEntryCard
+                      key={entry.id}
+                      entry={entry}
+                      isEditing={editingEntryId === entry.id}
+                    />
                   ))}
-                </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell><strong>Total</strong></TableCell>
-                    {section.columns.slice(1).map((col, index) => (
-                      <TableCell key={index} align="right">
-                        <strong>{totals[col.name] ? `${col.name}: ${totals[col.name]}` : ''}</strong>
-                      </TableCell>
-                    ))}
-                    <TableCell align="right"><strong>Total Days: {totalDays}</strong></TableCell>
-                    {sortedEntries.length > 3 && (
-                      <TableCell colSpan={section.columns.length + 1} align="center">
-                        <Button onClick={() => setShowAll(!showAll)}>
-                          {showAll ? 'Show Less' : 'View All'}
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </TableContainer>
+
+                  {/* Mobile Summary */}
+                  <Card sx={{ mt: 2, bgcolor: 'background.default' }}>
+                    <CardContent sx={{ p: 2 }}>
+                      <Typography variant="h6" sx={{ mb: 1 }}>Summary</Typography>
+                      <Grid container spacing={2}>
+                        {Object.entries(totals).map(([key, value]) => (
+                          <Grid item xs={6} key={key}>
+                            <Typography variant="body2" color="text.secondary">
+                              {key}
+                            </Typography>
+                            <Typography variant="h6" color="primary">
+                              {value}
+                            </Typography>
+                          </Grid>
+                        ))}
+                        <Grid item xs={6}>
+                          <Typography variant="body2" color="text.secondary">
+                            Total Days
+                          </Typography>
+                          <Typography variant="h6" color="primary">
+                            {totalDays}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+
+                      {sortedEntries.length > 3 && (
+                        <Box sx={{ mt: 2, textAlign: 'center' }}>
+                          <Button
+                            onClick={() => setShowAll(!showAll)}
+                            variant="outlined"
+                            fullWidth
+                          >
+                            {showAll ? 'Show Less' : 'View All'}
+                          </Button>
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Box>
+              ) : (
+                // Desktop Table Layout
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        {section.columns.map((col, index) => (
+                          <TableCell key={index}>{col.name}</TableCell>
+                        ))}
+                        <TableCell>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {visibleEntries.map((entry) => (
+                        <TableRow key={entry.id}>
+                          {editingEntryId === entry.id ? (
+                            <>
+                              {section.columns.map((col, index) => (
+                                <TableCell key={index}>
+                                  {col.type === 'dropdown' ? (
+                                    <FormControl fullWidth variant="standard">
+                                      <Select
+                                        multiple={col.allowMultiple}
+                                        value={editedEntry[col.name] || (col.allowMultiple ? [] : '')}
+                                        onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
+                                      >
+                                        {(col.options || []).map(option => (
+                                          <MenuItem key={option} value={option}>{option}</MenuItem>
+                                        ))}
+                                      </Select>
+                                    </FormControl>
+                                  ) : (
+                                    <TextField
+                                      value={editedEntry[col.name] || ''}
+                                      onChange={(e) => handleEditedInputChange(col.name, e.target.value)}
+                                      type={col.type === 'duration' ? 'text' : col.type}
+                                      fullWidth
+                                      variant="standard"
+                                    />
+                                  )}
+                                </TableCell>
+                              ))}
+                              <TableCell>
+                                <IconButton onClick={handleSaveEntry} color="primary"><Save /></IconButton>
+                                <IconButton onClick={handleCancelEdit} color="secondary"><Cancel /></IconButton>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              {section.columns.map((col, index) => (
+                                <TableCell key={index}>
+                                  {renderCellContent(col, entry[col.name])}
+                                </TableCell>
+                              ))}
+                              <TableCell>
+                                <IconButton onClick={() => handleEditEntry(entry)} color="primary"><Edit /></IconButton>
+                                <IconButton onClick={() => deleteEntry(entry.id)} color="error"><Delete /></IconButton>
+                              </TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow>
+                        <TableCell><strong>Total</strong></TableCell>
+                        {section.columns.slice(1).map((col, index) => (
+                          <TableCell key={index} align="right">
+                            <strong>{totals[col.name] ? `${col.name}: ${totals[col.name]}` : ''}</strong>
+                          </TableCell>
+                        ))}
+                        <TableCell align="right"><strong>Total Days: {totalDays}</strong></TableCell>
+                        {sortedEntries.length > 3 && (
+                          <TableCell colSpan={section.columns.length + 1} align="center">
+                            <Button onClick={() => setShowAll(!showAll)}>
+                              {showAll ? 'Show Less' : 'View All'}
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                </TableContainer>
+              )}
+            </>
           ) : (
             <Typography>No entries yet. Click "Add Entry" to get started.</Typography>
           )}

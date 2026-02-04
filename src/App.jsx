@@ -8,11 +8,13 @@ import GoalTracker from './components/GoalTracker.jsx';
 import ReportGenerator from './components/ReportGenerator.jsx';
 import ActivityCategorySettings from './components/ActivityCategorySettings.jsx';
 import {
-  Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper, Button, IconButton, Tabs, Tab
+  Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper, Button, IconButton, Tabs, Tab,
+  useMediaQuery, useTheme, Drawer, List, ListItem, ListItemIcon, ListItemText, Menu, MenuItem
 } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import {
-  Brightness4, Brightness7, CenterFocusStrong, Analytics, Psychology, EmojiEvents, Assessment, Home
+  Brightness4, Brightness7, CenterFocusStrong, Analytics, Psychology, EmojiEvents, Assessment, Home,
+  Menu as MenuIcon, MoreVert
 } from '@mui/icons-material';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
@@ -23,6 +25,8 @@ const AppContent = () => {
   const [focusedTodo, setFocusedTodo] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [showActivitySettings, setShowActivitySettings] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileStatsMenuAnchor, setMobileStatsMenuAnchor] = useState(null);
 
   const sections = useQuery(api.sections.get) || [];
   const todos = useQuery(api.todos.get) || [];
@@ -30,6 +34,9 @@ const AppContent = () => {
   const updateSection = useMutation(api.sections.update);
   const deleteSection = useMutation(api.sections.remove);
   const { darkMode, toggleDarkMode, theme } = useThemeMode();
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   const tabs = [
     { label: 'Dashboard', icon: <Home />, component: 'dashboard' },
@@ -136,25 +143,47 @@ const AppContent = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Productivity Tracker
+        <Toolbar sx={{ minHeight: isMobile ? 56 : 64 }}>
+          <Typography
+            variant={isMobile ? "h6" : "h6"}
+            component="div"
+            sx={{
+              flexGrow: 1,
+              fontSize: isMobile ? '1.1rem' : '1.25rem',
+              fontWeight: 500
+            }}
+          >
+            {isMobile ? "Tracker" : "Productivity Tracker"}
           </Typography>
 
-          {/* Productivity Stats */}
-          <Box sx={{ display: 'flex', gap: 2, mr: 2, fontSize: '0.9rem' }}>
-            <span>Active: {stats.active}</span>
-            <span>Completed: {stats.completed}</span>
-            {stats.overdue > 0 && (
-              <span style={{ color: '#ff5252' }}>Overdue: {stats.overdue}</span>
-            )}
-            <span>Time: {formatTime(stats.totalActualTime)}</span>
-          </Box>
+          {/* Desktop Productivity Stats */}
+          {!isMobile && (
+            <Box sx={{ display: 'flex', gap: 2, mr: 2, fontSize: '0.9rem' }}>
+              <span>Active: {stats.active}</span>
+              <span>Completed: {stats.completed}</span>
+              {stats.overdue > 0 && (
+                <span style={{ color: '#ff5252' }}>Overdue: {stats.overdue}</span>
+              )}
+              <span>Time: {formatTime(stats.totalActualTime)}</span>
+            </Box>
+          )}
+
+          {/* Mobile Stats Menu */}
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              onClick={(e) => setMobileStatsMenuAnchor(e.currentTarget)}
+              sx={{ mr: 1 }}
+              aria-label="view stats"
+            >
+              <MoreVert />
+            </IconButton>
+          )}
 
           <IconButton
             color="inherit"
             onClick={() => handleFocusMode()}
-            sx={{ mr: 2 }}
+            sx={{ mr: isMobile ? 1 : 2 }}
             aria-label="focus mode"
             title="Focus Mode (F)"
           >
@@ -164,38 +193,121 @@ const AppContent = () => {
           <IconButton
             color="inherit"
             onClick={toggleDarkMode}
-            sx={{ mr: 2 }}
+            sx={{ mr: isMobile ? 0 : 2 }}
             aria-label="toggle dark mode"
           >
             {darkMode ? <Brightness7 /> : <Brightness4 />}
           </IconButton>
 
-          <Button color="inherit" onClick={handleExportCsv}>
-            Export to CSV
-          </Button>
+          {/* Desktop Buttons */}
+          {!isMobile && (
+            <>
+              <Button color="inherit" onClick={handleExportCsv}>
+                Export to CSV
+              </Button>
 
-          <Button color="inherit" onClick={() => setShowActivitySettings(true)}>
-            Activity Settings
-          </Button>
+              <Button color="inherit" onClick={() => setShowActivitySettings(true)}>
+                Activity Settings
+              </Button>
+            </>
+          )}
+
+          {/* Mobile Menu */}
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="open menu"
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Mobile Stats Menu */}
+      <Menu
+        anchorEl={mobileStatsMenuAnchor}
+        open={Boolean(mobileStatsMenuAnchor)}
+        onClose={() => setMobileStatsMenuAnchor(null)}
+        PaperProps={{
+          sx: { minWidth: 200 }
+        }}
+      >
+        <MenuItem disabled>
+          <Typography variant="body2">Active: {stats.active}</Typography>
+        </MenuItem>
+        <MenuItem disabled>
+          <Typography variant="body2">Completed: {stats.completed}</Typography>
+        </MenuItem>
+        {stats.overdue > 0 && (
+          <MenuItem disabled>
+            <Typography variant="body2" color="error">Overdue: {stats.overdue}</Typography>
+          </MenuItem>
+        )}
+        <MenuItem disabled>
+          <Typography variant="body2">Time: {formatTime(stats.totalActualTime)}</Typography>
+        </MenuItem>
+      </Menu>
+
+      {/* Mobile Drawer Menu */}
+      <Drawer
+        anchor="right"
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      >
+        <Box sx={{ width: 250, pt: 2 }}>
+          <List>
+            <ListItem button onClick={() => { handleExportCsv(); setMobileMenuOpen(false); }}>
+              <ListItemText primary="Export to CSV" />
+            </ListItem>
+            <ListItem button onClick={() => { setShowActivitySettings(true); setMobileMenuOpen(false); }}>
+              <ListItemText primary="Activity Settings" />
+            </ListItem>
+          </List>
+        </Box>
+      </Drawer>
+
+      <Container
+        maxWidth="lg"
+        sx={{
+          mt: isMobile ? 2 : 4,
+          mb: isMobile ? 2 : 4,
+          px: isMobile ? 1 : 3
+        }}
+      >
         {/* Navigation Tabs */}
-        <Paper sx={{ mb: 3 }}>
+        <Paper sx={{ mb: isMobile ? 2 : 3 }}>
           <Tabs
             value={activeTab}
             onChange={(e, newValue) => setActiveTab(newValue)}
-            variant="fullWidth"
-            sx={{ borderBottom: 1, borderColor: 'divider' }}
+            variant={isMobile ? "scrollable" : "fullWidth"}
+            scrollButtons={isMobile ? "auto" : false}
+            allowScrollButtonsMobile={isMobile}
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              '& .MuiTab-root': {
+                minHeight: isMobile ? 48 : 64,
+                fontSize: isMobile ? '0.875rem' : '0.9375rem',
+                minWidth: isMobile ? 'auto' : 'inherit',
+                px: isMobile ? 1 : 2
+              }
+            }}
           >
             {tabs.map((tab, index) => (
               <Tab
                 key={index}
-                icon={tab.icon}
-                label={tab.label}
-                iconPosition="start"
-                sx={{ minHeight: 64 }}
+                icon={isMobile ? null : tab.icon}
+                label={isMobile ? tab.label.split(' ')[0] : tab.label}
+                iconPosition={isMobile ? "top" : "start"}
+                sx={{
+                  minHeight: isMobile ? 48 : 64,
+                  '& .MuiTab-iconWrapper': {
+                    marginBottom: isMobile ? 0.5 : 0,
+                    marginRight: isMobile ? 0 : 1
+                  }
+                }}
               />
             ))}
           </Tabs>
@@ -203,50 +315,79 @@ const AppContent = () => {
 
         {/* Tab Content */}
         {activeTab === 0 && (
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: isMobile ? 2 : 3,
+              borderRadius: 2,
+              bgcolor: 'background.paper'
+            }}
+          >
             {/* Productivity Dashboard */}
-            <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
+            <Box sx={{
+              mb: isMobile ? 2 : 3,
+              p: isMobile ? 1.5 : 2,
+              bgcolor: 'background.default',
+              borderRadius: 1
+            }}>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ mb: 2 }}>
                 📊 Productivity Dashboard
               </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" color="primary">{stats.active}</Typography>
-                  <Typography variant="body2" color="text.secondary">Active Tasks</Typography>
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: isMobile
+                  ? 'repeat(2, 1fr)'
+                  : 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: isMobile ? 1.5 : 2
+              }}>
+                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="primary">{stats.active}</Typography>
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Active Tasks</Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" color="success.main">{stats.completed}</Typography>
-                  <Typography variant="body2" color="text.secondary">Completed</Typography>
+                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="success.main">{stats.completed}</Typography>
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Completed</Typography>
                 </Box>
                 {stats.overdue > 0 && (
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" color="error.main">{stats.overdue}</Typography>
-                    <Typography variant="body2" color="text.secondary">Overdue</Typography>
+                  <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
+                    <Typography variant={isMobile ? "h5" : "h4"} color="error.main">{stats.overdue}</Typography>
+                    <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Overdue</Typography>
                   </Box>
                 )}
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" color="info.main">{stats.recurring}</Typography>
-                  <Typography variant="body2" color="text.secondary">Recurring</Typography>
+                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="info.main">{stats.recurring}</Typography>
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Recurring</Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" color="warning.main">{formatTime(stats.totalEstimatedTime)}</Typography>
-                  <Typography variant="body2" color="text.secondary">Est. Time Left</Typography>
+                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="warning.main">{formatTime(stats.totalEstimatedTime)}</Typography>
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Est. Time Left</Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4" color="secondary.main">{formatTime(stats.totalActualTime)}</Typography>
-                  <Typography variant="body2" color="text.secondary">Time Tracked</Typography>
+                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="secondary.main">{formatTime(stats.totalActualTime)}</Typography>
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Time Tracked</Typography>
                 </Box>
               </Box>
             </Box>
 
             {/* Quick Actions */}
-            <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{
+              mb: isMobile ? 2 : 3,
+              display: 'flex',
+              gap: isMobile ? 1 : 2,
+              flexWrap: 'wrap',
+              flexDirection: isMobile ? 'column' : 'row'
+            }}>
               <Button
                 variant="contained"
                 onClick={() => handleFocusMode()}
-                startIcon={<CenterFocusStrong />}
+                startIcon={!isMobile ? <CenterFocusStrong /> : null}
+                fullWidth={isMobile}
+                sx={{
+                  minHeight: isMobile ? 48 : 'auto',
+                  fontSize: isMobile ? '1rem' : 'inherit'
+                }}
               >
-                Focus Mode
+                {isMobile ? '🎯 Focus Mode' : 'Focus Mode'}
               </Button>
               <Button
                 variant="outlined"
@@ -256,6 +397,11 @@ const AppContent = () => {
                     const randomTodo = activeTodos[Math.floor(Math.random() * activeTodos.length)];
                     handleFocusMode(randomTodo);
                   }
+                }}
+                fullWidth={isMobile}
+                sx={{
+                  minHeight: isMobile ? 48 : 'auto',
+                  fontSize: isMobile ? '1rem' : 'inherit'
                 }}
               >
                 🎲 Random Task
@@ -269,6 +415,11 @@ const AppContent = () => {
                   }
                 }}
                 disabled={!todos.some(todo => !todo.done && todo.priority === 'high')}
+                fullWidth={isMobile}
+                sx={{
+                  minHeight: isMobile ? 48 : 'auto',
+                  fontSize: isMobile ? '1rem' : 'inherit'
+                }}
               >
                 🔥 High Priority
               </Button>
@@ -283,6 +434,11 @@ const AppContent = () => {
                   }
                 }}
                 disabled={stats.overdue === 0}
+                fullWidth={isMobile}
+                sx={{
+                  minHeight: isMobile ? 48 : 'auto',
+                  fontSize: isMobile ? '1rem' : 'inherit'
+                }}
               >
                 ⚠️ Overdue
               </Button>

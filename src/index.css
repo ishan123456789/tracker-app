@@ -1,8 +1,10 @@
+/* Mobile-first approach: Base styles for mobile */
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-size: 16px; /* Ensure 16px minimum for iOS zoom prevention */
 }
 
 /* Global responsive styles */
@@ -10,43 +12,166 @@ html, body, #root {
   box-sizing: border-box;
 }
 
-/* Ensure minimum touch target sizes on mobile */
-@media (max-width: 768px) {
+/* Base mobile styles (320px+) */
+body {
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Touch-friendly interactive elements */
+button,
+.MuiIconButton-root,
+.MuiCheckbox-root,
+.MuiButton-root,
+input[type="checkbox"],
+input[type="radio"],
+select {
+  min-width: 48px !important;
+  min-height: 48px !important;
+  touch-action: manipulation;
+}
+
+/* Mobile typography scaling */
+.MuiTypography-h1 { font-size: 2rem !important; }
+.MuiTypography-h2 { font-size: 1.75rem !important; }
+.MuiTypography-h3 { font-size: 1.5rem !important; }
+.MuiTypography-h4 { font-size: 1.25rem !important; }
+.MuiTypography-h5 { font-size: 1.125rem !important; }
+.MuiTypography-h6 { font-size: 1rem !important; }
+.MuiTypography-body1 { font-size: 1rem !important; line-height: 1.6 !important; }
+.MuiTypography-body2 { font-size: 0.875rem !important; line-height: 1.5 !important; }
+
+/* Mobile container spacing */
+.MuiContainer-root {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+/* Mobile form elements */
+.MuiTextField-root {
+  margin-bottom: 16px;
+}
+
+.MuiTextField-root input,
+.MuiTextField-root textarea {
+  font-size: 16px !important; /* Prevent iOS zoom */
+}
+
+/* Mobile grid system */
+.MuiGrid-container {
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.MuiGrid-item {
+  padding: 8px !important;
+}
+
+/* Mobile card spacing */
+.MuiCard-root {
+  margin-bottom: 16px;
+  border-radius: 12px !important;
+}
+
+.MuiCardContent-root {
+  padding: 16px !important;
+}
+
+/* Mobile table alternatives */
+.MuiTableContainer-root {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Small phones (320px - 479px) */
+@media (max-width: 479px) {
+  .MuiContainer-root {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .MuiTypography-h1 { font-size: 1.75rem !important; }
+  .MuiTypography-h2 { font-size: 1.5rem !important; }
+  .MuiTypography-h3 { font-size: 1.25rem !important; }
+  .MuiTypography-h4 { font-size: 1.125rem !important; }
+  .MuiTypography-h5 { font-size: 1rem !important; }
+  .MuiTypography-h6 { font-size: 0.875rem !important; }
+
+  .MuiGrid-container {
+    flex-direction: column;
+  }
+
+  .MuiGrid-item {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  .MuiCardContent-root {
+    padding: 12px !important;
+  }
+}
+
+/* Large phones (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .MuiContainer-root {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  .MuiGrid-item {
+    padding: 12px !important;
+  }
+}
+
+/* Tablets (768px - 1023px) */
+@media (min-width: 768px) {
+  /* Reset touch targets for larger screens */
   button,
   .MuiIconButton-root,
   .MuiCheckbox-root,
-  input[type="checkbox"] {
-    min-width: 44px !important;
-    min-height: 44px !important;
+  .MuiButton-root {
+    min-width: auto !important;
+    min-height: auto !important;
   }
 
-  /* Improve text readability on mobile */
-  .MuiTypography-root {
-    line-height: 1.5;
-  }
+  /* Desktop typography */
+  .MuiTypography-h1 { font-size: 2.5rem !important; }
+  .MuiTypography-h2 { font-size: 2rem !important; }
+  .MuiTypography-h3 { font-size: 1.75rem !important; }
+  .MuiTypography-h4 { font-size: 1.5rem !important; }
+  .MuiTypography-h5 { font-size: 1.25rem !important; }
+  .MuiTypography-h6 { font-size: 1.125rem !important; }
 
-  /* Better spacing for mobile */
   .MuiContainer-root {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
   }
 
-  /* Responsive form elements */
-  .MuiTextField-root {
-    margin-bottom: 8px;
+  .MuiGrid-item {
+    padding: 16px !important;
   }
 
-  /* Stack form elements on very small screens */
-  @media (max-width: 480px) {
-    .MuiGrid-container {
-      flex-direction: column;
-    }
-
-    .MuiGrid-item {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
+  .MuiCardContent-root {
+    padding: 24px !important;
   }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .MuiContainer-root {
+    padding-left: 32px !important;
+    padding-right: 32px !important;
+  }
+
+  .MuiTypography-h1 { font-size: 3rem !important; }
+  .MuiTypography-h2 { font-size: 2.25rem !important; }
+  .MuiTypography-h3 { font-size: 2rem !important; }
+  .MuiTypography-h4 { font-size: 1.75rem !important; }
+  .MuiTypography-h5 { font-size: 1.5rem !important; }
+  .MuiTypography-h6 { font-size: 1.25rem !important; }
 }
 
 /* Dark mode transitions */
@@ -122,8 +247,8 @@ html {
 .todo-main {
   display: flex;
   align-items: flex-start;
-  padding: 16px;
-  gap: 12px;
+  padding: 12px;
+  gap: 8px;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -141,8 +266,8 @@ html {
 }
 
 .todo-checkbox {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border: 2px solid #e0e0e0;
   border-radius: 6px;
   background: #ffffff;
@@ -205,6 +330,66 @@ html {
     padding: 12px 16px !important;
     min-height: 48px !important;
     font-size: 16px !important;
+  }
+}
+
+/* Responsive todo item styles */
+/* Small phones (320px - 479px) */
+@media (max-width: 479px) {
+  .todo-main {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .todo-checkbox {
+    width: 28px;
+    height: 28px;
+  }
+
+  .todo-item {
+    margin-bottom: 6px;
+  }
+
+  .todo-actions {
+    gap: 2px;
+  }
+}
+
+/* Large phones (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .todo-main {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .todo-checkbox {
+    width: 32px;
+    height: 32px;
+  }
+
+  .todo-item {
+    margin-bottom: 8px;
+  }
+}
+
+/* Tablets and desktop (768px+) */
+@media (min-width: 768px) {
+  .todo-main {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .todo-checkbox {
+    width: 24px;
+    height: 24px;
+  }
+
+  .todo-item {
+    margin-bottom: 12px;
+  }
+
+  .todo-actions {
+    gap: 4px;
   }
 }
 
