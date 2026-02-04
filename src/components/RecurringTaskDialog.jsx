@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 const RecurringTaskDialog = ({ isOpen, onClose, onSave, initialData = {} }) => {
   const [recurringData, setRecurringData] = useState({
-    isRecurring: initialData.isRecurring || false,
-    recurringPattern: initialData.recurringPattern || 'daily',
-    recurringInterval: initialData.recurringInterval || 1,
-    recurringDays: initialData.recurringDays || [],
-    ...initialData
+    isRecurring: false,
+    recurringPattern: 'daily',
+    recurringInterval: 1,
+    recurringDays: [],
   });
+
+  // Update state when dialog opens or initialData changes
+  useEffect(() => {
+    if (isOpen) {
+      setRecurringData({
+        isRecurring: initialData.isRecurring || false,
+        recurringPattern: initialData.recurringPattern || 'daily',
+        recurringInterval: initialData.recurringInterval || 1,
+        recurringDays: initialData.recurringDays || [],
+        ...initialData
+      });
+    }
+  }, [isOpen, initialData]);
 
   const daysOfWeek = [
     { value: 0, label: 'Sun' },
@@ -19,21 +32,28 @@ const RecurringTaskDialog = ({ isOpen, onClose, onSave, initialData = {} }) => {
     { value: 6, label: 'Sat' }
   ];
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     onSave(recurringData);
     onClose();
-  };
+  }, [onSave, onClose, recurringData]);
 
-  const handleDayToggle = (dayValue) => {
-    const newDays = recurringData.recurringDays.includes(dayValue)
-      ? recurringData.recurringDays.filter(d => d !== dayValue)
-      : [...recurringData.recurringDays, dayValue];
+  const handleDayToggle = useCallback((dayValue) => {
+    setRecurringData(prev => {
+      const newDays = prev.recurringDays.includes(dayValue)
+        ? prev.recurringDays.filter(d => d !== dayValue)
+        : [...prev.recurringDays, dayValue];
 
-    setRecurringData(prev => ({
-      ...prev,
-      recurringDays: newDays
-    }));
-  };
+      return {
+        ...prev,
+        recurringDays: newDays
+      };
+    });
+  }, []);
+
+  const handleClose = useCallback((e) => {
+    e?.stopPropagation();
+    onClose();
+  }, [onClose]);
 
   const getRecurrenceDescription = () => {
     if (!recurringData.isRecurring) return 'Not recurring';
@@ -61,12 +81,12 @@ const RecurringTaskDialog = ({ isOpen, onClose, onSave, initialData = {} }) => {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="dialog-overlay" onClick={onClose}>
+  const dialogContent = (
+    <div className="dialog-overlay" onClick={handleClose}>
       <div className="dialog-content" onClick={e => e.stopPropagation()}>
         <div className="dialog-header">
           <h3>Recurring Task Settings</h3>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={handleClose}>×</button>
         </div>
 
         <div className="dialog-body">
@@ -180,10 +200,10 @@ const RecurringTaskDialog = ({ isOpen, onClose, onSave, initialData = {} }) => {
         </div>
 
         <div className="dialog-footer">
-          <button className="button secondary" onClick={onClose}>
+          <button className="dialog-button secondary" onClick={handleClose}>
             Cancel
           </button>
-          <button className="button primary" onClick={handleSave}>
+          <button className="dialog-button primary" onClick={handleSave}>
             Save Settings
           </button>
         </div>
@@ -406,6 +426,8 @@ const RecurringTaskDialog = ({ isOpen, onClose, onSave, initialData = {} }) => {
       </div>
     </div>
   );
+
+  return createPortal(dialogContent, document.body);
 };
 
 export default RecurringTaskDialog;
