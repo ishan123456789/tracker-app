@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+// recurringMissed is imported via api below
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { TodoItem } from './TodoItem';
@@ -16,6 +17,7 @@ const TodoList = ({ onFocusMode }) => {
   const removeOldDoneTodos = useMutation(api.todos.removeOldDone);
   const bulkComplete = useMutation(api.todos.bulkComplete);
   const bulkDelete = useMutation(api.todos.bulkDelete);
+  const checkAllMissedRecurring = useMutation(api.recurringMissed.checkAllMissedRecurring);
 
   const [newTodo, setNewTodo] = useState('');
   const [newDeadline, setNewDeadline] = useState('');
@@ -51,6 +53,24 @@ const TodoList = ({ onFocusMode }) => {
     }, 60 * 60 * 1000); // Run every hour to clean up old done todos
     return () => clearInterval(interval);
   }, [removeOldDoneTodos]);
+
+  // On mount: detect and log any missed recurring tasks (throttled to once per hour)
+  useEffect(() => {
+    const STORAGE_KEY = 'lastMissedRecurringCheck';
+    const ONE_HOUR = 60 * 60 * 1000;
+    const lastCheck = localStorage.getItem(STORAGE_KEY);
+    const now = Date.now();
+    if (!lastCheck || now - parseInt(lastCheck, 10) > ONE_HOUR) {
+      checkAllMissedRecurring()
+        .then((result) => {
+          if (result && result.totalNewMisses > 0) {
+            console.info(`[RecurringMiss] Logged ${result.totalNewMisses} new missed occurrence(s) across ${result.processed} habit(s).`);
+          }
+        })
+        .catch((err) => console.warn('[RecurringMiss] Check failed:', err));
+      localStorage.setItem(STORAGE_KEY, now.toString());
+    }
+  }, [checkAllMissedRecurring]);
 
   const handleAddTodo = useCallback(async () => {
     if (newTodo.trim() === '') return;

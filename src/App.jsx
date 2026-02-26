@@ -7,6 +7,7 @@ import ProductivityInsights from './components/ProductivityInsights.jsx';
 import GoalTracker from './components/GoalTracker.jsx';
 import ReportGenerator from './components/ReportGenerator.jsx';
 import ActivityCategorySettings from './components/ActivityCategorySettings.jsx';
+import RecurringHabitTracker from './components/RecurringHabitTracker.jsx';
 import {
   Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper, Button, IconButton, Tabs, Tab,
   useMediaQuery, useTheme, Drawer, List, ListItem, ListItemIcon, ListItemText, Menu, MenuItem
@@ -14,7 +15,7 @@ import {
 import { ThemeProvider } from '@mui/material/styles';
 import {
   Brightness4, Brightness7, CenterFocusStrong, Analytics, Psychology, EmojiEvents, Assessment, Home,
-  Menu as MenuIcon, MoreVert
+  Menu as MenuIcon, MoreVert, Loop as LoopIcon
 } from '@mui/icons-material';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
@@ -43,6 +44,7 @@ const AppContent = () => {
     { label: 'Analytics', icon: <Analytics />, component: 'analytics' },
     { label: 'Insights', icon: <Psychology />, component: 'insights' },
     { label: 'Goals', icon: <EmojiEvents />, component: 'goals' },
+    { label: 'Habits', icon: <LoopIcon />, component: 'habits' },
     { label: 'Reports', icon: <Assessment />, component: 'reports' }
   ];
 
@@ -467,8 +469,11 @@ const AppContent = () => {
         {/* Goals Tab */}
         {activeTab === 3 && <GoalTracker />}
 
+        {/* Habits Tab */}
+        {activeTab === 4 && <RecurringHabitTracker />}
+
         {/* Reports Tab */}
-        {activeTab === 4 && <ReportGenerator />}
+        {activeTab === 5 && <ReportGenerator />}
       </Container>
 
       {/* Focus Mode */}

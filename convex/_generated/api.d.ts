@@ -22,6 +22,7 @@ import type * as categoryHierarchy from "../categoryHierarchy.js";
 import type * as comments from "../comments.js";
 import type * as integrations from "../integrations.js";
 import type * as migrations from "../migrations.js";
+import type * as recurringMissed from "../recurringMissed.js";
 import type * as sections from "../sections.js";
 import type * as teams from "../teams.js";
 import type * as todos from "../todos.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   integrations: typeof integrations;
   migrations: typeof migrations;
+  recurringMissed: typeof recurringMissed;
   sections: typeof sections;
   teams: typeof teams;
   todos: typeof todos;

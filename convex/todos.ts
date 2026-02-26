@@ -209,10 +209,70 @@ export const completeRecurringTask = mutation({
     const todo = await ctx.db.get(args.id);
     if (!todo) return;
 
+    const today = new Date().toISOString().split("T")[0];
+
+    // ── Streak calculation ──────────────────────────────────────────────────
+    // The root todo holds the canonical streak/stats. Find it.
+    // If parentRecurringId points to a deleted document, fall back to the current todo.
+    const rawRootId = todo.parentRecurringId ?? args.id;
+    const rawRootTodo = rawRootId === args.id ? todo : await ctx.db.get(rawRootId);
+
+    // Guard: if the root document was deleted, treat the current todo as the new root.
+    // Also clear the stale parentRecurringId so future instances don't keep pointing
+    // to the deleted document.
+    const rootIsOrphaned = !rawRootTodo && rawRootId !== args.id;
+    if (rootIsOrphaned) {
+      await ctx.db.patch(args.id, { parentRecurringId: undefined });
+    }
+    const rootId = rawRootTodo ? rawRootId : args.id;
+    const rootTodo = rawRootTodo ?? todo;
+
+    let currentStreak = rootTodo.currentStreak || 0;
+    let longestStreak = rootTodo.longestStreak || 0;
+    const totalCompleted = (rootTodo.totalCompleted || 0) + 1;
+    const lastCompletedDate = rootTodo.lastCompletedDate;
+
+    // Determine if the streak continues or resets.
+    // A streak continues if the last completion was on the previous valid occurrence date.
+    // For simplicity: if lastCompletedDate was yesterday (daily) or within the expected
+    // interval, continue the streak; otherwise start fresh at 1.
+    if (lastCompletedDate) {
+      const last = new Date(lastCompletedDate + "T00:00:00.000Z");
+      const todayDate = new Date(today + "T00:00:00.000Z");
+      const diffDays = Math.round((todayDate.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Determine expected gap based on pattern
+      let expectedGap = 1;
+      if (todo.recurringPattern === "weekly") expectedGap = 7;
+      else if (todo.recurringPattern === "monthly") expectedGap = 28; // approximate
+      else if (todo.recurringPattern === "custom") expectedGap = todo.recurringInterval || 1;
+
+      // Allow a small tolerance (same day or expected gap)
+      if (diffDays <= expectedGap + 1) {
+        currentStreak += 1;
+      } else {
+        // Streak broken — reset to 1
+        currentStreak = 1;
+      }
+    } else {
+      // First ever completion
+      currentStreak = 1;
+    }
+
+    longestStreak = Math.max(longestStreak, currentStreak);
+
+    // Update the root todo with new streak stats
+    await ctx.db.patch(rootId, {
+      currentStreak,
+      longestStreak,
+      totalCompleted,
+      lastCompletedDate: today,
+    });
+
     // Mark current instance as done
     await ctx.db.patch(args.id, {
       done: true,
-      doneAt: Date.now()
+      doneAt: Date.now(),
     });
 
     if (args.completeAll) {
@@ -230,7 +290,27 @@ export const completeRecurringTask = mutation({
 
     if (args.skipNext || !todo.isRecurring) return;
 
-    // Create next instance
+    // Clean up any stale undone sibling instances with past deadlines.
+    // These accumulate when the user had to click multiple times before the
+    // calculateNextDueDate fix was deployed. Deleting them prevents the
+    // "multiple clicks to reach today" problem for existing DB data.
+    const todayStr = new Date().toISOString().split("T")[0];
+    const staleSiblings = await ctx.db
+      .query("todos")
+      .filter((q) => q.eq(q.field("parentRecurringId"), rootId))
+      .collect();
+    for (const sibling of staleSiblings) {
+      if (
+        !sibling.done &&
+        sibling._id !== args.id &&
+        sibling.deadline &&
+        sibling.deadline < todayStr
+      ) {
+        await ctx.db.delete(sibling._id);
+      }
+    }
+
+    // Create next instance, carrying streak stats forward
     const nextDate = calculateNextDueDate(todo);
     if (nextDate) {
       await ctx.db.insert("todos", {
@@ -252,10 +332,17 @@ export const completeRecurringTask = mutation({
         recurringPattern: todo.recurringPattern,
         recurringInterval: todo.recurringInterval,
         recurringDays: todo.recurringDays,
-        parentRecurringId: todo.parentRecurringId || args.id,
+        parentRecurringId: rootId,
+        recurringStartDate: rootTodo?.recurringStartDate || todo.deadline,
+        // Propagate streak stats so they're visible on the next instance too
+        currentStreak,
+        longestStreak,
+        totalCompleted,
+        totalMissed: rootTodo?.totalMissed || todo.totalMissed || 0,
+        lastCompletedDate: today,
         actualMinutes: 0,
         timerSessions: [],
-        position: (await getMaxPosition(ctx)) + 1
+        position: (await getMaxPosition(ctx)) + 1,
       });
     }
   },
@@ -400,29 +487,51 @@ async function getMaxPosition(ctx: any): Promise<number> {
 function calculateNextDueDate(todo: any): string | null {
   if (!todo.recurringPattern) return null;
 
-  // Use deadline if available, otherwise use current date
-  const currentDate = todo.deadline ? new Date(todo.deadline) : new Date();
+  // Start from the current deadline (or today if no deadline set)
+  const cursor = todo.deadline ? new Date(todo.deadline + "T00:00:00.000Z") : new Date();
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
 
-  switch (todo.recurringPattern) {
-    case "daily":
-      currentDate.setDate(currentDate.getDate() + 1);
-      break;
-    case "weekly":
-      currentDate.setDate(currentDate.getDate() + 7);
-      break;
-    case "monthly":
-      currentDate.setMonth(currentDate.getMonth() + 1);
-      break;
-    case "custom":
-      if (todo.recurringInterval) {
-        currentDate.setDate(currentDate.getDate() + todo.recurringInterval);
+  // Advance one step at a time until we land on a date >= today.
+  // This handles the case where the deadline is days/weeks in the past —
+  // we skip all the missed occurrences and land directly on the next future date.
+  let safety = 0;
+  do {
+    switch (todo.recurringPattern) {
+      case "daily":
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+        break;
+      case "weekly": {
+        const days: number[] = todo.recurringDays || [];
+        if (days.length === 0) {
+          cursor.setUTCDate(cursor.getUTCDate() + 7);
+        } else {
+          // Find the next scheduled day-of-week after cursor
+          const cursorDow = cursor.getUTCDay();
+          const sortedDays = [...days].sort((a, b) => a - b);
+          const nextThisWeek = sortedDays.find((d) => d > cursorDow);
+          if (nextThisWeek !== undefined) {
+            cursor.setUTCDate(cursor.getUTCDate() + (nextThisWeek - cursorDow));
+          } else {
+            // Wrap to next week
+            cursor.setUTCDate(cursor.getUTCDate() + (7 - cursorDow + sortedDays[0]));
+          }
+        }
+        break;
       }
-      break;
-    default:
-      return null;
-  }
+      case "monthly":
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+        break;
+      case "custom":
+        cursor.setUTCDate(cursor.getUTCDate() + (todo.recurringInterval || 1));
+        break;
+      default:
+        return null;
+    }
+    safety++;
+  } while (cursor < today && safety < 400);
 
-  return currentDate.toISOString().split('T')[0];
+  return cursor.toISOString().split('T')[0];
 }
 
 // Auto-tracking mutation for completing todos with activity tracking

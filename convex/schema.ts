@@ -142,6 +142,14 @@ export default defineSchema({
     parentRecurringId: v.optional(v.id("todos")), // Links to original recurring task
     nextDueDate: v.optional(v.string()), // Next occurrence for recurring tasks
 
+    // Habit / streak tracking fields (live on root recurring todo)
+    currentStreak: v.optional(v.number()),      // Consecutive completions without a miss
+    longestStreak: v.optional(v.number()),      // All-time best streak
+    totalMissed: v.optional(v.number()),        // Lifetime miss count
+    totalCompleted: v.optional(v.number()),     // Lifetime completion count
+    lastCompletedDate: v.optional(v.string()),  // ISO date of last completion "YYYY-MM-DD"
+    recurringStartDate: v.optional(v.string()), // ISO date when recurring was first set up
+
     // Enhanced management fields
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -200,6 +208,18 @@ export default defineSchema({
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_owner", ["ownerId"]),
+
+  // Recurring missed occurrence logs
+  recurringMissedLogs: defineTable({
+    recurringRootId: v.id("todos"),  // The original/root recurring task ID
+    missedDate: v.string(),          // ISO date "YYYY-MM-DD" that was missed
+    pattern: v.string(),             // "daily" | "weekly" | "monthly" | "custom"
+    taskText: v.string(),            // Snapshot of task text at time of miss
+    loggedAt: v.number(),            // Timestamp when this miss was detected
+  })
+    .index("by_root", ["recurringRootId"])
+    .index("by_date", ["missedDate"])
+    .index("by_root_date", ["recurringRootId", "missedDate"]),
 
   // Comments and mentions system
   comments: defineTable({

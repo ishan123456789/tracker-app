@@ -727,9 +727,39 @@ export const TodoItem = ({
             )}
 
             {/* Indicators */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
               {todo.isRecurring && (
-                <Typography variant="caption" title="Recurring task">🔄</Typography>
+                <>
+                  <Typography variant="caption" title="Recurring task">🔄</Typography>
+                  {(todo.currentStreak > 0) && (
+                    <Chip
+                      label={`🔥 ${todo.currentStreak}`}
+                      size="small"
+                      title={`Current streak: ${todo.currentStreak} completion(s) in a row`}
+                      sx={{
+                        height: 18,
+                        fontSize: '0.65rem',
+                        backgroundColor: todo.currentStreak >= 7 ? '#ff6d00' : todo.currentStreak >= 3 ? '#ff9800' : '#ffe0b2',
+                        color: todo.currentStreak >= 3 ? 'white' : 'text.primary',
+                        '& .MuiChip-label': { px: 0.75 }
+                      }}
+                    />
+                  )}
+                  {(todo.totalMissed > 0) && (
+                    <Chip
+                      label={`❌ ${todo.totalMissed}`}
+                      size="small"
+                      title={`Missed ${todo.totalMissed} time(s)`}
+                      sx={{
+                        height: 18,
+                        fontSize: '0.65rem',
+                        backgroundColor: '#ffebee',
+                        color: '#c62828',
+                        '& .MuiChip-label': { px: 0.75 }
+                      }}
+                    />
+                  )}
+                </>
               )}
               {todo.notes && (
                 <Typography variant="caption" title="Has notes">📝</Typography>
@@ -830,6 +860,64 @@ export const TodoItem = ({
       {/* Expanded Details */}
       <Collapse in={isExpanded}>
         <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', backgroundColor: 'background.default' }}>
+
+          {/* Habit Stats — only for recurring tasks */}
+          {todo.isRecurring && (
+            <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, backgroundColor: 'background.paper', border: 1, borderColor: 'divider' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                🔄 Habit Stats
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ lineHeight: 1, color: todo.currentStreak > 0 ? 'warning.main' : 'text.disabled' }}>
+                    🔥 {todo.currentStreak || 0}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>Current Streak</Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ lineHeight: 1, color: 'success.main' }}>
+                    🏆 {todo.longestStreak || 0}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>Best Streak</Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ lineHeight: 1, color: 'success.dark' }}>
+                    ✅ {todo.totalCompleted || 0}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>Completed</Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ lineHeight: 1, color: todo.totalMissed > 0 ? 'error.main' : 'text.disabled' }}>
+                    ❌ {todo.totalMissed || 0}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>Missed</Typography>
+                </Box>
+                {((todo.totalCompleted || 0) + (todo.totalMissed || 0)) > 0 && (
+                  <Box sx={{ textAlign: 'center' }}>
+                    {(() => {
+                      const total = (todo.totalCompleted || 0) + (todo.totalMissed || 0);
+                      const rate = Math.round(((todo.totalCompleted || 0) / total) * 100);
+                      const color = rate >= 80 ? 'success.main' : rate >= 50 ? 'warning.main' : 'error.main';
+                      return (
+                        <>
+                          <Typography variant="h6" sx={{ lineHeight: 1, color }}>
+                            {rate}%
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Compliance</Typography>
+                        </>
+                      );
+                    })()}
+                  </Box>
+                )}
+              </Box>
+              {todo.lastCompletedDate && (
+                <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
+                  Last completed: {todo.lastCompletedDate}
+                </Typography>
+              )}
+            </Box>
+          )}
+
           {/* Notes Section */}
           <Box sx={{ mb: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
