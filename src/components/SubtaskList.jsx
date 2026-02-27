@@ -164,7 +164,7 @@ const SubtaskList = ({ parentTodo, onUpdate }) => {
         </button>
       )}
 
-      <style jsx>{`
+      <style>{`
         .subtask-list {
           background: var(--bg-secondary);
           border: 1px solid var(--border-color);

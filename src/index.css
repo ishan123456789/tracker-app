@@ -20,16 +20,22 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Touch-friendly interactive elements */
-button,
-.MuiIconButton-root,
-.MuiCheckbox-root,
+/* Touch-friendly interactive elements — only standalone buttons, not icon buttons inside items */
 .MuiButton-root,
+.MuiBottomNavigationAction-root,
+.add-button,
+.action-button,
+.section-toggle {
+  min-height: 48px !important;
+  touch-action: manipulation;
+}
+
+/* All interactive elements get manipulation (no double-tap zoom) */
+button,
 input[type="checkbox"],
 input[type="radio"],
-select {
-  min-width: 48px !important;
-  min-height: 48px !important;
+select,
+.MuiIconButton-root {
   touch-action: manipulation;
 }
 
@@ -433,20 +439,50 @@ html {
 /* Mobile responsive styles */
 @media (max-width: 768px) {
   .todo-main {
-    padding: 12px;
-    gap: 8px;
+    padding: 10px 8px;
+    gap: 6px;
   }
 
+  /* Larger checkbox tap target on mobile */
   .todo-checkbox {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    min-height: 28px;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 8px;
+    font-size: 16px;
   }
 
   .todo-item {
     margin-bottom: 6px;
   }
+
+  /* Hide drag handle on mobile — touch drag works without it */
+  .todo-drag-handle {
+    display: none !important;
+  }
+}
+
+/* Safe-area insets for notched phones (iPhone X+, Android with gesture nav) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    height: calc(56px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .mobile-content-padding {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Bottom navigation bar styles */
+.mobile-bottom-nav {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1200 !important;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12) !important;
 }
 
 /* Improved typography hierarchy */

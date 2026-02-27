@@ -600,47 +600,53 @@ const TodoList = ({ onFocusMode }) => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
+          margin-bottom: 20px;
+          gap: 8px;
         }
 
         .todo-header h2 {
           margin: 0;
           color: var(--text-primary);
+          font-size: 1.25rem;
         }
 
         .header-actions {
           display: flex;
-          gap: 12px;
+          gap: 8px;
+          flex-shrink: 0;
         }
 
         .action-button {
-          padding: 8px 16px;
+          padding: 8px 14px;
           border: 1px solid var(--border-color);
           border-radius: 6px;
           background: var(--bg-secondary);
           color: var(--text-primary);
           cursor: pointer;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           transition: all 0.2s ease;
+          white-space: nowrap;
         }
 
         .action-button:hover {
           background: var(--bg-hover);
         }
 
+        /* ── Add-todo form ── */
         .add-todo-form {
           background: var(--bg-secondary);
           border: 1px solid var(--border-color);
           border-radius: 8px;
           padding: 16px;
-          margin-bottom: 24px;
+          margin-bottom: 20px;
         }
 
         .form-row {
           display: flex;
-          gap: 12px;
-          margin-bottom: 12px;
+          gap: 10px;
+          margin-bottom: 10px;
           align-items: flex-start;
+          flex-wrap: wrap;
         }
 
         .form-row:last-child {
@@ -648,13 +654,14 @@ const TodoList = ({ onFocusMode }) => {
         }
 
         .todo-input {
-          flex: 1;
+          flex: 1 1 100%;
           padding: 10px 12px;
           border: 1px solid var(--border-color);
           border-radius: 6px;
           background: var(--bg-primary);
           color: var(--text-primary);
           font-size: 1rem;
+          min-width: 0;
         }
 
         .date-input, .time-input, .priority-select {
@@ -663,48 +670,54 @@ const TodoList = ({ onFocusMode }) => {
           border-radius: 6px;
           background: var(--bg-primary);
           color: var(--text-primary);
+          flex: 1 1 auto;
+          min-width: 0;
         }
 
         .time-input {
-          width: 100px;
+          min-width: 90px;
         }
 
         .priority-select {
-          width: 120px;
+          min-width: 100px;
         }
 
         .add-button {
           padding: 10px 20px;
-          background: var(--accent-color);
+          background: var(--accent-color, #1976d2);
           color: white;
           border: none;
           border-radius: 6px;
           cursor: pointer;
           font-weight: 500;
+          font-size: 1rem;
           transition: all 0.2s ease;
+          flex: 1 1 auto;
+          white-space: nowrap;
         }
 
         .add-button:hover {
-          background: var(--accent-hover);
+          background: var(--accent-hover, #1565c0);
         }
 
         .advanced-form {
           border-top: 1px solid var(--border-color);
-          padding-top: 16px;
-          margin-top: 16px;
+          padding-top: 14px;
+          margin-top: 14px;
         }
 
         .category-input, .time-estimate-input {
-          flex: 1;
+          flex: 1 1 auto;
           padding: 8px 12px;
           border: 1px solid var(--border-color);
           border-radius: 6px;
           background: var(--bg-primary);
           color: var(--text-primary);
+          min-width: 0;
         }
 
         .tags-input-container {
-          flex: 1;
+          flex: 1 1 100%;
         }
 
         .tags-input {
@@ -724,9 +737,9 @@ const TodoList = ({ onFocusMode }) => {
         }
 
         .tag-badge {
-          background: var(--accent-color);
+          background: var(--accent-color, #1976d2);
           color: white;
-          padding: 2px 6px;
+          padding: 3px 8px;
           border-radius: 4px;
           font-size: 0.8rem;
           display: flex;
@@ -739,8 +752,11 @@ const TodoList = ({ onFocusMode }) => {
           border: none;
           color: white;
           cursor: pointer;
-          font-size: 0.9rem;
+          font-size: 1rem;
           padding: 0;
+          line-height: 1;
+          min-width: unset;
+          min-height: unset;
         }
 
         .notes-input {
@@ -752,65 +768,75 @@ const TodoList = ({ onFocusMode }) => {
           color: var(--text-primary);
           resize: vertical;
           font-family: inherit;
+          font-size: 1rem;
         }
 
+        /* ── Controls bar ── */
         .controls {
           display: flex;
-          gap: 16px;
-          align-items: center;
-          margin-bottom: 24px;
-          flex-wrap: wrap;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 20px;
         }
 
         .search-section {
-          flex: 1;
-          min-width: 200px;
+          width: 100%;
         }
 
         .search-input {
           width: 100%;
-          padding: 8px 12px;
+          padding: 10px 12px;
           border: 1px solid var(--border-color);
           border-radius: 6px;
           background: var(--bg-secondary);
           color: var(--text-primary);
+          font-size: 1rem;
+          box-sizing: border-box;
         }
 
         .filter-section {
           display: flex;
           gap: 8px;
+          flex-wrap: wrap;
         }
 
         .filter-select, .sort-select {
-          padding: 8px 12px;
+          flex: 1 1 calc(50% - 4px);
+          padding: 10px 8px;
           border: 1px solid var(--border-color);
           border-radius: 6px;
           background: var(--bg-secondary);
           color: var(--text-primary);
+          font-size: 0.9rem;
+          min-width: 0;
         }
 
+        /* ── Bulk actions ── */
         .bulk-actions {
           display: flex;
           gap: 8px;
           align-items: center;
-          padding: 8px 12px;
-          background: var(--accent-color);
+          padding: 10px 12px;
+          background: var(--accent-color, #1976d2);
           border-radius: 6px;
           color: white;
+          flex-wrap: wrap;
         }
 
         .selected-count {
           font-weight: 500;
+          flex: 1 1 auto;
         }
 
         .bulk-button {
-          padding: 4px 8px;
+          padding: 6px 10px;
           background: rgba(255, 255, 255, 0.2);
           border: none;
           border-radius: 4px;
           color: white;
           cursor: pointer;
           font-size: 0.85rem;
+          white-space: nowrap;
         }
 
         .bulk-button:hover {
@@ -821,16 +847,19 @@ const TodoList = ({ onFocusMode }) => {
           background: #ef4444;
         }
 
+        /* ── Stats bar ── */
         .stats {
           display: flex;
-          gap: 16px;
-          margin-bottom: 16px;
-          font-size: 0.9rem;
+          gap: 12px;
+          margin-bottom: 14px;
+          font-size: 0.85rem;
           color: var(--text-secondary);
+          flex-wrap: wrap;
         }
 
+        /* ── Todo list ── */
         .todos-container {
-          margin-bottom: 24px;
+          margin-bottom: 20px;
         }
 
         .empty-state {
@@ -839,6 +868,7 @@ const TodoList = ({ onFocusMode }) => {
           color: var(--text-secondary);
         }
 
+        /* ── Completed section ── */
         .completed-section {
           border-top: 1px solid var(--border-color);
           padding-top: 16px;
@@ -851,7 +881,9 @@ const TodoList = ({ onFocusMode }) => {
           cursor: pointer;
           font-size: 1rem;
           font-weight: 500;
-          padding: 8px 0;
+          padding: 10px 0;
+          width: 100%;
+          text-align: left;
         }
 
         .completed-todos {
@@ -861,8 +893,8 @@ const TodoList = ({ onFocusMode }) => {
         .completed-todo {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 8px 0;
+          gap: 10px;
+          padding: 10px 4px;
           border-bottom: 1px solid var(--border-light);
         }
 
@@ -874,6 +906,11 @@ const TodoList = ({ onFocusMode }) => {
           flex: 1;
           text-decoration: line-through;
           color: var(--text-secondary);
+          font-size: 0.95rem;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .delete-completed {
@@ -881,8 +918,12 @@ const TodoList = ({ onFocusMode }) => {
           border: none;
           color: var(--text-secondary);
           cursor: pointer;
-          padding: 4px;
+          padding: 6px;
           border-radius: 4px;
+          font-size: 1rem;
+          flex-shrink: 0;
+          min-width: unset;
+          min-height: unset;
         }
 
         .delete-completed:hover {
@@ -890,9 +931,72 @@ const TodoList = ({ onFocusMode }) => {
           color: #ef4444;
         }
 
-        .todo-checkbox {
-          width: 16px;
-          height: 16px;
+        /* Completed-section native checkbox */
+        .completed-todo .todo-checkbox {
+          width: 20px;
+          height: 20px;
+          flex-shrink: 0;
+          cursor: pointer;
+        }
+
+        /* ── Desktop overrides (768px+) ── */
+        @media (min-width: 768px) {
+          .todo-list {
+            padding: 20px;
+          }
+
+          .todo-input {
+            flex: 1 1 auto;
+          }
+
+          .controls {
+            flex-direction: row;
+            align-items: center;
+          }
+
+          .search-section {
+            flex: 1;
+            min-width: 200px;
+            width: auto;
+          }
+
+          .filter-section {
+            flex-wrap: nowrap;
+          }
+
+          .filter-select, .sort-select {
+            flex: 0 0 auto;
+            width: auto;
+          }
+
+          .add-button {
+            flex: 0 0 auto;
+          }
+        }
+
+        /* ── Small phone overrides (max 479px) ── */
+        @media (max-width: 479px) {
+          .todo-list {
+            padding: 12px;
+          }
+
+          .todo-header h2 {
+            font-size: 1.1rem;
+          }
+
+          .action-button {
+            padding: 6px 10px;
+            font-size: 0.8rem;
+          }
+
+          .add-todo-form {
+            padding: 12px;
+          }
+
+          .stats {
+            font-size: 0.8rem;
+            gap: 8px;
+          }
         }
       `}</style>
     </div>

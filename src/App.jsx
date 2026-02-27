@@ -10,7 +10,8 @@ import ActivityCategorySettings from './components/ActivityCategorySettings.jsx'
 import RecurringHabitTracker from './components/RecurringHabitTracker.jsx';
 import {
   Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper, Button, IconButton, Tabs, Tab,
-  useMediaQuery, useTheme, Drawer, List, ListItem, ListItemIcon, ListItemText, Menu, MenuItem
+  useMediaQuery, useTheme, Drawer, List, ListItem, ListItemIcon, ListItemText, Menu, MenuItem,
+  BottomNavigation, BottomNavigationAction
 } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import {
@@ -273,54 +274,53 @@ const AppContent = () => {
       <Container
         maxWidth="lg"
         sx={{
-          mt: isMobile ? 2 : 4,
+          mt: isMobile ? 1.5 : 4,
           mb: isMobile ? 2 : 4,
-          px: isMobile ? 1 : 3
+          px: isMobile ? 1 : 3,
+          /* Push content above fixed bottom nav on mobile */
+          pb: isMobile ? '72px' : 0
         }}
+        className={isMobile ? 'mobile-content-padding' : ''}
       >
-        {/* Navigation Tabs */}
-        <Paper sx={{ mb: isMobile ? 2 : 3 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(e, newValue) => setActiveTab(newValue)}
-            variant={isMobile ? "scrollable" : "fullWidth"}
-            scrollButtons={isMobile ? "auto" : false}
-            allowScrollButtonsMobile={isMobile}
-            sx={{
-              borderBottom: 1,
-              borderColor: 'divider',
-              '& .MuiTab-root': {
-                minHeight: isMobile ? 48 : 64,
-                fontSize: isMobile ? '0.875rem' : '0.9375rem',
-                minWidth: isMobile ? 'auto' : 'inherit',
-                px: isMobile ? 1 : 2
-              }
-            }}
-          >
-            {tabs.map((tab, index) => (
-              <Tab
-                key={index}
-                icon={isMobile ? null : tab.icon}
-                label={isMobile ? tab.label.split(' ')[0] : tab.label}
-                iconPosition={isMobile ? "top" : "start"}
-                sx={{
-                  minHeight: isMobile ? 48 : 64,
-                  '& .MuiTab-iconWrapper': {
-                    marginBottom: isMobile ? 0.5 : 0,
-                    marginRight: isMobile ? 0 : 1
-                  }
-                }}
-              />
-            ))}
-          </Tabs>
-        </Paper>
+        {/* Desktop Navigation Tabs — hidden on mobile (bottom nav used instead) */}
+        {!isMobile && (
+          <Paper sx={{ mb: 3 }}>
+            <Tabs
+              value={activeTab}
+              onChange={(e, newValue) => setActiveTab(newValue)}
+              variant="fullWidth"
+              sx={{
+                borderBottom: 1,
+                borderColor: 'divider',
+                '& .MuiTab-root': {
+                  minHeight: 64,
+                  fontSize: '0.9375rem',
+                  px: 2
+                }
+              }}
+            >
+              {tabs.map((tab, index) => (
+                <Tab
+                  key={index}
+                  icon={tab.icon}
+                  label={tab.label}
+                  iconPosition="start"
+                  sx={{
+                    minHeight: 64,
+                    '& .MuiTab-iconWrapper': { marginRight: 1 }
+                  }}
+                />
+              ))}
+            </Tabs>
+          </Paper>
+        )}
 
         {/* Tab Content */}
         {activeTab === 0 && (
           <Paper
             elevation={0}
             sx={{
-              p: isMobile ? 2 : 3,
+              p: isMobile ? 1.5 : 3,
               borderRadius: 2,
               bgcolor: 'background.paper'
             }}
@@ -332,64 +332,100 @@ const AppContent = () => {
               bgcolor: 'background.default',
               borderRadius: 1
             }}>
-              <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ mb: 2 }}>
+              <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ mb: 1.5, fontWeight: 600 }}>
                 📊 Productivity Dashboard
               </Typography>
+              {/* Stats grid — 2 cols on mobile, auto-fit on desktop */}
               <Box sx={{
                 display: 'grid',
-                gridTemplateColumns: isMobile
-                  ? 'repeat(2, 1fr)'
-                  : 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: isMobile ? 1.5 : 2
+                gridTemplateColumns: {
+                  xs: 'repeat(2, 1fr)',
+                  sm: 'repeat(3, 1fr)',
+                  md: 'repeat(auto-fit, minmax(160px, 1fr))'
+                },
+                gap: { xs: 1, sm: 1.5, md: 2 }
               }}>
-                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="primary">{stats.active}</Typography>
-                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Active Tasks</Typography>
+                <Box sx={{
+                  textAlign: 'center',
+                  p: { xs: 1, sm: 1.5 },
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  boxShadow: 1
+                }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="primary" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{stats.active}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Active Tasks</Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="success.main">{stats.completed}</Typography>
-                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Completed</Typography>
+                <Box sx={{
+                  textAlign: 'center',
+                  p: { xs: 1, sm: 1.5 },
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  boxShadow: 1
+                }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="success.main" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{stats.completed}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Completed</Typography>
                 </Box>
-                {stats.overdue > 0 && (
-                  <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
-                    <Typography variant={isMobile ? "h5" : "h4"} color="error.main">{stats.overdue}</Typography>
-                    <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Overdue</Typography>
-                  </Box>
-                )}
-                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="info.main">{stats.recurring}</Typography>
-                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Recurring</Typography>
+                <Box sx={{
+                  textAlign: 'center',
+                  p: { xs: 1, sm: 1.5 },
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  boxShadow: 1
+                }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="error.main" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{stats.overdue}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Overdue</Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="warning.main">{formatTime(stats.totalEstimatedTime)}</Typography>
-                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Est. Time Left</Typography>
+                <Box sx={{
+                  textAlign: 'center',
+                  p: { xs: 1, sm: 1.5 },
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  boxShadow: 1
+                }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="info.main" sx={{ fontWeight: 700, lineHeight: 1.2 }}>{stats.recurring}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Recurring</Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center', p: isMobile ? 1 : 0 }}>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="secondary.main">{formatTime(stats.totalActualTime)}</Typography>
-                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">Time Tracked</Typography>
+                <Box sx={{
+                  textAlign: 'center',
+                  p: { xs: 1, sm: 1.5 },
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  boxShadow: 1
+                }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="warning.main" sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: '1.1rem', sm: '1.5rem', md: '2rem' } }}>{formatTime(stats.totalEstimatedTime)}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Est. Left</Typography>
+                </Box>
+                <Box sx={{
+                  textAlign: 'center',
+                  p: { xs: 1, sm: 1.5 },
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  boxShadow: 1
+                }}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color="secondary.main" sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: '1.1rem', sm: '1.5rem', md: '2rem' } }}>{formatTime(stats.totalActualTime)}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Tracked</Typography>
                 </Box>
               </Box>
             </Box>
 
-            {/* Quick Actions */}
+            {/* Quick Actions — 2×2 grid on mobile, row on desktop */}
             <Box sx={{
               mb: isMobile ? 2 : 3,
-              display: 'flex',
-              gap: isMobile ? 1 : 2,
-              flexWrap: 'wrap',
-              flexDirection: isMobile ? 'column' : 'row'
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(4, 1fr)'
+              },
+              gap: { xs: 1, sm: 1.5, md: 2 }
             }}>
               <Button
                 variant="contained"
                 onClick={() => handleFocusMode()}
-                startIcon={!isMobile ? <CenterFocusStrong /> : null}
-                fullWidth={isMobile}
-                sx={{
-                  minHeight: isMobile ? 48 : 'auto',
-                  fontSize: isMobile ? '1rem' : 'inherit'
-                }}
+                startIcon={<CenterFocusStrong />}
+                sx={{ minHeight: 48, fontSize: { xs: '0.85rem', sm: '0.9rem' } }}
               >
-                {isMobile ? '🎯 Focus Mode' : 'Focus Mode'}
+                Focus Mode
               </Button>
               <Button
                 variant="outlined"
@@ -400,13 +436,9 @@ const AppContent = () => {
                     handleFocusMode(randomTodo);
                   }
                 }}
-                fullWidth={isMobile}
-                sx={{
-                  minHeight: isMobile ? 48 : 'auto',
-                  fontSize: isMobile ? '1rem' : 'inherit'
-                }}
+                sx={{ minHeight: 48, fontSize: { xs: '0.85rem', sm: '0.9rem' } }}
               >
-                🎲 Random Task
+                🎲 Random
               </Button>
               <Button
                 variant="outlined"
@@ -417,13 +449,9 @@ const AppContent = () => {
                   }
                 }}
                 disabled={!todos.some(todo => !todo.done && todo.priority === 'high')}
-                fullWidth={isMobile}
-                sx={{
-                  minHeight: isMobile ? 48 : 'auto',
-                  fontSize: isMobile ? '1rem' : 'inherit'
-                }}
+                sx={{ minHeight: 48, fontSize: { xs: '0.85rem', sm: '0.9rem' } }}
               >
-                🔥 High Priority
+                🔥 Priority
               </Button>
               <Button
                 variant="outlined"
@@ -436,11 +464,7 @@ const AppContent = () => {
                   }
                 }}
                 disabled={stats.overdue === 0}
-                fullWidth={isMobile}
-                sx={{
-                  minHeight: isMobile ? 48 : 'auto',
-                  fontSize: isMobile ? '1rem' : 'inherit'
-                }}
+                sx={{ minHeight: 48, fontSize: { xs: '0.85rem', sm: '0.9rem' } }}
               >
                 ⚠️ Overdue
               </Button>
@@ -449,7 +473,7 @@ const AppContent = () => {
             {/* Main Content */}
             <TodoList onFocusMode={handleFocusMode} />
 
-            <Box sx={{ mt: 4 }}>
+            <Box sx={{ mt: 3 }}>
               <SectionList
                 sections={sections}
                 addSection={addSection}
@@ -475,6 +499,43 @@ const AppContent = () => {
         {/* Reports Tab */}
         {activeTab === 5 && <ReportGenerator />}
       </Container>
+
+      {/* Mobile Bottom Navigation Bar */}
+      {isMobile && (
+        <Paper
+          className="mobile-bottom-nav"
+          elevation={3}
+        >
+          <BottomNavigation
+            value={activeTab}
+            onChange={(e, newValue) => setActiveTab(newValue)}
+            showLabels
+            sx={{
+              height: 56,
+              '& .MuiBottomNavigationAction-root': {
+                minWidth: 0,
+                padding: '6px 4px 8px',
+                fontSize: '0.65rem',
+                color: 'text.secondary',
+              },
+              '& .MuiBottomNavigationAction-root.Mui-selected': {
+                color: 'primary.main',
+              },
+              '& .MuiBottomNavigationAction-label': {
+                fontSize: '0.65rem !important',
+                marginTop: '2px',
+              },
+            }}
+          >
+            <BottomNavigationAction label="Tasks" icon={<Home sx={{ fontSize: 22 }} />} />
+            <BottomNavigationAction label="Analytics" icon={<Analytics sx={{ fontSize: 22 }} />} />
+            <BottomNavigationAction label="Insights" icon={<Psychology sx={{ fontSize: 22 }} />} />
+            <BottomNavigationAction label="Goals" icon={<EmojiEvents sx={{ fontSize: 22 }} />} />
+            <BottomNavigationAction label="Habits" icon={<LoopIcon sx={{ fontSize: 22 }} />} />
+            <BottomNavigationAction label="Reports" icon={<Assessment sx={{ fontSize: 22 }} />} />
+          </BottomNavigation>
+        </Paper>
+      )}
 
       {/* Focus Mode */}
       <FocusMode

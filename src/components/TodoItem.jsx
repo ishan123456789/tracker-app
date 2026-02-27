@@ -12,7 +12,9 @@ import {
   TextField,
   Typography,
   Box,
-  Divider
+  Divider,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   MoreVert as MoreVertIcon,
@@ -78,6 +80,9 @@ export const TodoItem = ({
   const [showAutoTrackingPreview, setShowAutoTrackingPreview] = useState(false);
   const [extractedMetrics, setExtractedMetrics] = useState(null);
   const [activityCategory, setActivityCategory] = useState(null);
+
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: todo._id });
 
@@ -430,15 +435,17 @@ export const TodoItem = ({
     >
       {/* Main Todo Row */}
       <div className="todo-main" onClick={handleItemClick}>
-        {/* Drag Handle */}
+        {/* Drag Handle — hidden on mobile (touch drag works natively via dnd-kit) */}
         <IconButton
           size="small"
           {...attributes}
           {...listeners}
+          className="todo-drag-handle"
           sx={{
             color: 'text.secondary',
             cursor: 'grab',
             mr: 0.5,
+            display: { xs: 'none', sm: 'inline-flex' },
             '&:active': {
               cursor: 'grabbing'
             }
@@ -653,13 +660,20 @@ export const TodoItem = ({
             )}
           </div>
 
-          {/* Metadata Row */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+          {/* Metadata Row — wraps on mobile */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 1, sm: 2 },
+            mt: 0.75,
+            flexWrap: 'wrap',
+            rowGap: 0.5
+          }}>
             {/* Deadline */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <ScheduleIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+              <ScheduleIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
               {editingDeadline ? (
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                   <TextField
                     type="date"
                     value={editDeadline}
@@ -667,6 +681,7 @@ export const TodoItem = ({
                     onBlur={handleSaveDeadline}
                     size="small"
                     variant="standard"
+                    sx={{ minWidth: 120 }}
                   />
                   <TextField
                     type="time"
@@ -675,6 +690,7 @@ export const TodoItem = ({
                     onBlur={handleSaveDeadline}
                     size="small"
                     variant="standard"
+                    sx={{ minWidth: 90 }}
                   />
                 </Box>
               ) : (
@@ -688,6 +704,7 @@ export const TodoItem = ({
                     cursor: 'pointer',
                     color: todo.deadline ? (isPastDeadline ? 'error.main' : 'text.secondary') : 'text.disabled',
                     fontStyle: todo.deadline ? 'normal' : 'italic',
+                    fontSize: { xs: '0.72rem', sm: '0.75rem' },
                     '&:hover': {
                       backgroundColor: 'action.hover',
                       borderRadius: 1,
@@ -701,7 +718,7 @@ export const TodoItem = ({
                       {todo.dueTime && ` ${todo.dueTime}`}
                     </>
                   ) : (
-                    'No deadline set'
+                    isMobile ? 'No date' : 'No deadline set'
                   )}
                 </Typography>
               )}
@@ -709,9 +726,9 @@ export const TodoItem = ({
 
             {/* Timer Status */}
             {isRunning && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <TimerIcon sx={{ fontSize: 14, color: 'primary.main' }} />
-                <Typography variant="caption" sx={{ color: 'primary.main' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                <TimerIcon sx={{ fontSize: 13, color: 'primary.main' }} />
+                <Typography variant="caption" sx={{ color: 'primary.main', fontSize: { xs: '0.72rem', sm: '0.75rem' } }}>
                   Running
                 </Typography>
               </Box>
@@ -719,10 +736,10 @@ export const TodoItem = ({
 
             {/* Time Info */}
             {(todo.estimatedMinutes || todo.actualMinutes) && (
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: { xs: '0.72rem', sm: '0.75rem' }, flexShrink: 0 }}>
                 {todo.estimatedMinutes && `Est: ${formatTime(todo.estimatedMinutes)}`}
-                {todo.estimatedMinutes && todo.actualMinutes && ' | '}
-                {todo.actualMinutes && `Actual: ${formatTime(todo.actualMinutes)}`}
+                {todo.estimatedMinutes && todo.actualMinutes && ' · '}
+                {todo.actualMinutes && `${formatTime(todo.actualMinutes)}`}
               </Typography>
             )}
 
@@ -730,7 +747,7 @@ export const TodoItem = ({
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
               {todo.isRecurring && (
                 <>
-                  <Typography variant="caption" title="Recurring task">🔄</Typography>
+                  <Typography variant="caption" title="Recurring task" sx={{ fontSize: '0.8rem' }}>🔄</Typography>
                   {(todo.currentStreak > 0) && (
                     <Chip
                       label={`🔥 ${todo.currentStreak}`}
@@ -762,13 +779,13 @@ export const TodoItem = ({
                 </>
               )}
               {todo.notes && (
-                <Typography variant="caption" title="Has notes">📝</Typography>
+                <Typography variant="caption" title="Has notes" sx={{ fontSize: '0.8rem' }}>📝</Typography>
               )}
               {todo.tags && todo.tags.length > 0 && (
-                <Typography variant="caption" title={`Tags: ${todo.tags.join(', ')}`}>🏷️</Typography>
+                <Typography variant="caption" title={`Tags: ${todo.tags.join(', ')}`} sx={{ fontSize: '0.8rem' }}>🏷️</Typography>
               )}
               {todo.subtasks && todo.subtasks.length > 0 && (
-                <Typography variant="caption" title={`${todo.subtasks.length} subtasks`}>📋</Typography>
+                <Typography variant="caption" title={`${todo.subtasks.length} subtasks`} sx={{ fontSize: '0.8rem' }}>📋</Typography>
               )}
             </Box>
           </Box>
@@ -778,21 +795,29 @@ export const TodoItem = ({
         <div className="todo-actions" onClick={(e) => e.stopPropagation()}>
           {/* Expand/Collapse Button */}
           <IconButton
-            size="small"
+            size={isMobile ? 'medium' : 'small'}
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(!isExpanded);
             }}
-            sx={{ color: 'text.secondary' }}
+            sx={{
+              color: 'text.secondary',
+              p: isMobile ? 1 : 0.5,
+            }}
+            aria-label={isExpanded ? 'Collapse' : 'Expand'}
           >
             {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
 
           {/* Action Menu */}
           <IconButton
-            size="small"
+            size={isMobile ? 'medium' : 'small'}
             onClick={handleMenuOpen}
-            sx={{ color: 'text.secondary' }}
+            sx={{
+              color: 'text.secondary',
+              p: isMobile ? 1 : 0.5,
+            }}
+            aria-label="More actions"
           >
             <MoreVertIcon />
           </IconButton>

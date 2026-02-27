@@ -167,7 +167,7 @@ const TimeTracker = ({ todo, onUpdate }) => {
         </details>
       )}
 
-      <style jsx>{`
+      <style>{`
         .time-tracker {
           background: var(--bg-secondary);
           border: 1px solid var(--border-color);
