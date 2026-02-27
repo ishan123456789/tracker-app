@@ -393,4 +393,90 @@ export class MetricsCalculator {
       isOverdue: now > endDate && !isCompleted
     };
   }
+
+  /**
+   * Calculate a mastery score (0-100) for a category.
+   * @param {Object} params
+   * @param {number} params.completionRate   - 0-100
+   * @param {number} params.consistencyScore - 0-100 (% of days with ≥1 completion)
+   * @param {number} params.highPriorityRatio - 0-100 (% of high-priority tasks completed)
+   * @returns {number}
+   */
+  static calculateMasteryScore({ completionRate = 0, consistencyScore = 0, highPriorityRatio = 0 }) {
+    return Math.min(100, Math.round(
+      completionRate   * 0.5 +
+      consistencyScore * 0.3 +
+      highPriorityRatio * 0.2
+    ));
+  }
+
+  /**
+   * Calculate a lag score (0-100) for a category. Higher = more lagging.
+   * @param {Object} params
+   * @param {number} params.overdueRatio    - 0-1 (overdue / total)
+   * @param {number} params.completionRate  - 0-100
+   * @param {number} params.avgDaysOverdue  - average days tasks are overdue
+   * @returns {number}
+   */
+  static calculateLagScore({ overdueRatio = 0, completionRate = 0, avgDaysOverdue = 0 }) {
+    return Math.min(100, Math.round(
+      overdueRatio * 40 +
+      (1 - completionRate / 100) * 40 +
+      Math.min(avgDaysOverdue / 30, 1) * 20
+    ));
+  }
+
+  /**
+   * Return a human-readable mastery label for a mastery score.
+   * @param {number} score - 0-100
+   * @returns {'Expert'|'Proficient'|'Developing'|'Struggling'}
+   */
+  static getMasteryLabel(score) {
+    if (score >= 80) return 'Expert';
+    if (score >= 60) return 'Proficient';
+    if (score >= 40) return 'Developing';
+    return 'Struggling';
+  }
+
+  /**
+   * Return a human-readable lag label for a lag score.
+   * @param {number} score - 0-100
+   * @returns {'Critical'|'Behind'|'Slight Lag'|'On Track'}
+   */
+  static getLagLabel(score) {
+    if (score >= 70) return 'Critical';
+    if (score >= 50) return 'Behind';
+    if (score >= 30) return 'Slight Lag';
+    return 'On Track';
+  }
+
+  /**
+   * Return MUI color string for a mastery label.
+   * @param {string} label
+   * @returns {string}
+   */
+  static getMasteryColor(label) {
+    switch (label) {
+      case 'Expert':     return 'success';
+      case 'Proficient': return 'primary';
+      case 'Developing': return 'warning';
+      case 'Struggling': return 'error';
+      default:           return 'default';
+    }
+  }
+
+  /**
+   * Return MUI color string for a lag label.
+   * @param {string} label
+   * @returns {string}
+   */
+  static getLagColor(label) {
+    switch (label) {
+      case 'Critical':  return 'error';
+      case 'Behind':    return 'warning';
+      case 'Slight Lag': return 'info';
+      case 'On Track':  return 'success';
+      default:          return 'default';
+    }
+  }
 }

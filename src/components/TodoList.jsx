@@ -589,7 +589,7 @@ const TodoList = ({ onFocusMode }) => {
         onCreateFromTemplate={() => {}} // Trigger re-render if needed
       />
 
-      <style jsx>{`
+      <style>{`
         .todo-list {
           max-width: 1200px;
           margin: 0 auto;

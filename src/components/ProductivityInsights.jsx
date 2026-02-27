@@ -18,7 +18,11 @@ import {
   ListItemText,
   Divider,
   IconButton,
-  Tooltip
+  Tooltip,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
 } from '@mui/material';
 import {
   Lightbulb,
@@ -35,77 +39,59 @@ import {
   Psychology,
   Timeline,
   Category,
-  Flag
+  Flag,
 } from '@mui/icons-material';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { MetricsCalculator } from '../utils/MetricsCalculator';
+import TaskMasteryPanel from './TaskMasteryPanel';
+import LagDetectorPanel from './LagDetectorPanel';
+import MissedTasksPanel from './MissedTasksPanel';
 
 const ProductivityInsights = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [period, setPeriod] = useState('month');
 
-  // Fetch data
+  // ── Existing queries ────────────────────────────────────────────────────────
   const todos = useQuery(api.todos.get) || [];
   const insights = useQuery(api.analytics.getProductivityInsights);
   const productivityMetrics = useQuery(api.analytics.getProductivityMetrics);
   const categoryPerformance = useQuery(api.analytics.getCategoryPerformance);
 
-  // Calculate additional insights
-  const streakInfo = useMemo(() => {
-    return MetricsCalculator.calculateStreaks(todos);
-  }, [todos]);
+  // ── New queries ─────────────────────────────────────────────────────────────
+  const masteryStats   = useQuery(api.analytics.getTaskMasteryStats,   { period });
+  const lagData        = useQuery(api.analytics.getLagIndicators,       { period });
+  const missedData     = useQuery(api.analytics.getMissedTasksAnalysis);
 
-  const timePatterns = useMemo(() => {
-    return MetricsCalculator.analyzeTimePatterns(todos);
-  }, [todos]);
+  // ── Derived metrics (existing) ──────────────────────────────────────────────
+  const streakInfo = useMemo(() => MetricsCalculator.calculateStreaks(todos), [todos]);
+  const timePatterns = useMemo(() => MetricsCalculator.analyzeTimePatterns(todos), [todos]);
+  const categoryStats = useMemo(() => MetricsCalculator.getCategoryStats(todos), [todos]);
+  const priorityStats = useMemo(() => MetricsCalculator.getPriorityStats(todos.filter(t => t.done)), [todos]);
+  const generatedInsights = useMemo(() => MetricsCalculator.generateInsights(todos), [todos]);
 
-  const categoryStats = useMemo(() => {
-    return MetricsCalculator.getCategoryStats(todos);
-  }, [todos]);
+  const handleRefresh = () => setRefreshKey(prev => prev + 1);
 
-  const priorityStats = useMemo(() => {
-    return MetricsCalculator.getPriorityStats(todos.filter(todo => todo.done));
-  }, [todos]);
+  // Loading states
+  const masteryLoading = masteryStats === undefined;
+  const lagLoading     = lagData      === undefined;
+  const missedLoading  = missedData   === undefined;
 
-  const generatedInsights = useMemo(() => {
-    return MetricsCalculator.generateInsights(todos);
-  }, [todos]);
+  // Missed tasks count for header badge
+  const missedCount = missedData?.summary?.totalMissed ?? 0;
 
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-  };
-
-  // Get performance trends
-  const getPerformanceTrend = (current, previous) => {
-    if (!previous || previous === 0) return { trend: 'neutral', percentage: 0 };
-    const change = ((current - previous) / previous) * 100;
-    return {
-      trend: change > 5 ? 'up' : change < -5 ? 'down' : 'neutral',
-      percentage: Math.abs(Math.round(change))
-    };
-  };
-
-  // Get insight severity
+  // ── Helpers (existing) ──────────────────────────────────────────────────────
   const getInsightSeverity = (insight) => {
-    const lowerInsight = insight.toLowerCase();
-    if (lowerInsight.includes('excellent') || lowerInsight.includes('great') || lowerInsight.includes('impressive')) {
-      return 'success';
-    }
-    if (lowerInsight.includes('consider') || lowerInsight.includes('only') || lowerInsight.includes('longer')) {
-      return 'warning';
-    }
+    const l = insight.toLowerCase();
+    if (l.includes('excellent') || l.includes('great') || l.includes('impressive')) return 'success';
+    if (l.includes('consider') || l.includes('only') || l.includes('longer')) return 'warning';
     return 'info';
   };
 
-  // Get recommendation priority
-  const getRecommendationPriority = (recommendation) => {
-    const lowerRec = recommendation.toLowerCase();
-    if (lowerRec.includes('important') || lowerRec.includes('critical') || lowerRec.includes('urgent')) {
-      return 'high';
-    }
-    if (lowerRec.includes('consider') || lowerRec.includes('try')) {
-      return 'medium';
-    }
+  const getRecommendationPriority = (rec) => {
+    const l = rec.toLowerCase();
+    if (l.includes('important') || l.includes('critical') || l.includes('urgent')) return 'high';
+    if (l.includes('consider') || l.includes('try')) return 'medium';
     return 'low';
   };
 
@@ -119,20 +105,38 @@ const ProductivityInsights = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Psychology />
           Productivity Insights
         </Typography>
-        <Tooltip title="Refresh Insights">
-          <IconButton onClick={handleRefresh}>
-            <Refresh />
-          </IconButton>
-        </Tooltip>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {/* Period selector — controls Mastery + Lag panels */}
+          <FormControl size="small" sx={{ minWidth: 130 }}>
+            <InputLabel>Period</InputLabel>
+            <Select
+              value={period}
+              label="Period"
+              onChange={e => setPeriod(e.target.value)}
+            >
+              <MenuItem value="week">Last 7 days</MenuItem>
+              <MenuItem value="month">Last 30 days</MenuItem>
+              <MenuItem value="quarter">Last 90 days</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Tooltip title="Refresh Insights">
+            <IconButton onClick={handleRefresh}>
+              <Refresh />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
-      {/* Quick Stats */}
+      {/* ── Quick Stats ─────────────────────────────────────────────────────── */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ bgcolor: 'primary.50' }}>
@@ -141,9 +145,7 @@ const ProductivityInsights = () => {
                 <Star color="primary" />
                 <Box>
                   <Typography variant="h6">{productivityMetrics.productivityScore}</Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    Productivity Score
-                  </Typography>
+                  <Typography variant="caption" color="textSecondary">Productivity Score</Typography>
                 </Box>
               </Box>
             </CardContent>
@@ -157,9 +159,7 @@ const ProductivityInsights = () => {
                 <CheckCircle color="success" />
                 <Box>
                   <Typography variant="h6">{streakInfo.currentStreak}</Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    Current Streak (days)
-                  </Typography>
+                  <Typography variant="caption" color="textSecondary">Current Streak (days)</Typography>
                 </Box>
               </Box>
             </CardContent>
@@ -173,9 +173,7 @@ const ProductivityInsights = () => {
                 <Speed color="warning" />
                 <Box>
                   <Typography variant="h6">{productivityMetrics.timeEfficiency}%</Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    Time Efficiency
-                  </Typography>
+                  <Typography variant="caption" color="textSecondary">Time Efficiency</Typography>
                 </Box>
               </Box>
             </CardContent>
@@ -183,14 +181,22 @@ const ProductivityInsights = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'info.50' }}>
+          <Card sx={{ bgcolor: missedCount > 0 ? 'error.50' : 'info.50' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Assignment color="info" />
+                <Assignment color={missedCount > 0 ? 'error' : 'info'} />
                 <Box>
                   <Typography variant="h6">{productivityMetrics.completedTodos}</Typography>
                   <Typography variant="caption" color="textSecondary">
                     Tasks Completed
+                    {missedCount > 0 && (
+                      <Chip
+                        label={`${missedCount} missed`}
+                        color="error"
+                        size="small"
+                        sx={{ ml: 0.75, height: 16, fontSize: '0.6rem' }}
+                      />
+                    )}
                   </Typography>
                 </Box>
               </Box>
@@ -199,9 +205,24 @@ const ProductivityInsights = () => {
         </Grid>
       </Grid>
 
-      {/* Main Insights */}
-      <Grid container spacing={3}>
-        {/* AI-Generated Insights */}
+      {/* ── NEW: Missed Tasks Panel (full width, top priority) ──────────────── */}
+      <Box sx={{ mb: 4 }}>
+        <MissedTasksPanel missedData={missedData} loading={missedLoading} />
+      </Box>
+
+      {/* ── NEW: Task Mastery + Lag Detector (side by side) ─────────────────── */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <TaskMasteryPanel masteryStats={masteryStats} loading={masteryLoading} />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <LagDetectorPanel lagData={lagData} loading={lagLoading} />
+        </Grid>
+      </Grid>
+
+      {/* ── Existing: Smart Insights + Recommendations ──────────────────────── */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Smart Insights */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, height: 'fit-content' }}>
             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -220,7 +241,7 @@ const ProductivityInsights = () => {
                           '& .MuiAlert-icon': { fontSize: '1rem' },
                           minWidth: 'auto',
                           bgcolor: 'transparent',
-                          p: 0
+                          p: 0,
                         }}
                       />
                     </ListItemIcon>
@@ -276,8 +297,10 @@ const ProductivityInsights = () => {
             )}
           </Paper>
         </Grid>
+      </Grid>
 
-        {/* Detailed Analysis */}
+      {/* ── Existing: Detailed Analysis accordion ───────────────────────────── */}
+      <Grid container spacing={3}>
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -305,9 +328,9 @@ const ProductivityInsights = () => {
                           ({timePatterns.peakHourCount} tasks)
                         </Typography>
                         <Typography variant="body2">
-                          <strong>Best Day:</strong> {
-                            ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][timePatterns.peakDay]
-                          } ({timePatterns.peakDayCount} tasks)
+                          <strong>Best Day:</strong>{' '}
+                          {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][timePatterns.peakDay]}
+                          {' '}({timePatterns.peakDayCount} tasks)
                         </Typography>
                       </Box>
                     ) : (
@@ -344,11 +367,14 @@ const ProductivityInsights = () => {
                   {Object.entries(priorityStats).map(([priority, count]) => (
                     <Grid item xs={6} sm={3} key={priority}>
                       <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="h4" color={
-                          priority === 'high' ? 'error.main' :
-                          priority === 'medium' ? 'warning.main' :
-                          priority === 'low' ? 'info.main' : 'text.secondary'
-                        }>
+                        <Typography
+                          variant="h4"
+                          color={
+                            priority === 'high'   ? 'error.main' :
+                            priority === 'medium' ? 'warning.main' :
+                            priority === 'low'    ? 'info.main' : 'text.secondary'
+                          }
+                        >
                           {count}
                         </Typography>
                         <Typography variant="caption" sx={{ textTransform: 'capitalize' }}>
@@ -438,10 +464,13 @@ const ProductivityInsights = () => {
                   </Grid>
                   <Grid item xs={12} sm={4}>
                     <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h5" color={
-                        productivityMetrics.timeEfficiency > 100 ? 'success.main' :
-                        productivityMetrics.timeEfficiency < 80 ? 'error.main' : 'warning.main'
-                      }>
+                      <Typography
+                        variant="h5"
+                        color={
+                          productivityMetrics.timeEfficiency > 100 ? 'success.main' :
+                          productivityMetrics.timeEfficiency < 80  ? 'error.main' : 'warning.main'
+                        }
+                      >
                         {productivityMetrics.timeEfficiency}%
                       </Typography>
                       <Typography variant="caption" color="textSecondary">

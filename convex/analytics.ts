@@ -653,3 +653,394 @@ export const getProductivitySessions = query({
     return await query.order("desc").collect();
   },
 });
+
+// ─── Task Mastery Stats ───────────────────────────────────────────────────────
+// Returns per-category mastery data: completion rate, consistency, high-priority
+// ratio, trend, and a composite mastery score (0-100).
+export const getTaskMasteryStats = query({
+  args: {
+    period: v.optional(v.string()), // 'week' | 'month' | 'quarter'
+  },
+  handler: async (ctx, args) => {
+    const period = args.period || 'month';
+    const allTodos = await ctx.db.query("todos").collect();
+
+    const now = new Date();
+    let periodMs: number;
+    switch (period) {
+      case 'week':    periodMs = 7  * 24 * 60 * 60 * 1000; break;
+      case 'quarter': periodMs = 90 * 24 * 60 * 60 * 1000; break;
+      default:        periodMs = 30 * 24 * 60 * 60 * 1000;
+    }
+    const startDate = new Date(now.getTime() - periodMs);
+    const midDate   = new Date(now.getTime() - periodMs / 2);
+
+    // Only todos created or completed within the period
+    const periodTodos = allTodos.filter(todo => {
+      const ref = todo.completedAt
+        ? new Date(todo.completedAt)
+        : todo.createdAt
+          ? new Date(todo.createdAt)
+          : new Date(todo._creationTime);
+      return ref >= startDate;
+    });
+
+    // Build per-category buckets
+    type CatBucket = {
+      total: number;
+      completed: number;
+      highPriorityTotal: number;
+      highPriorityCompleted: number;
+      totalTimeMinutes: number;
+      completedDays: Set<string>;
+      firstHalfCompleted: number;
+      secondHalfCompleted: number;
+    };
+    const buckets = new Map<string, CatBucket>();
+
+    const ensureBucket = (cat: string) => {
+      if (!buckets.has(cat)) {
+        buckets.set(cat, {
+          total: 0,
+          completed: 0,
+          highPriorityTotal: 0,
+          highPriorityCompleted: 0,
+          totalTimeMinutes: 0,
+          completedDays: new Set(),
+          firstHalfCompleted: 0,
+          secondHalfCompleted: 0,
+        });
+      }
+      return buckets.get(cat)!;
+    };
+
+    periodTodos.forEach(todo => {
+      const cat = todo.mainCategory || todo.category || 'Uncategorized';
+      const b = ensureBucket(cat);
+      b.total++;
+      if (todo.priority === 'high') b.highPriorityTotal++;
+
+      if (todo.done) {
+        b.completed++;
+        b.totalTimeMinutes += todo.timeSpent || todo.actualMinutes || 0;
+        if (todo.priority === 'high') b.highPriorityCompleted++;
+
+        const completedAt = todo.completedAt
+          ? new Date(todo.completedAt)
+          : new Date(todo._creationTime);
+        b.completedDays.add(completedAt.toISOString().split('T')[0]);
+
+        if (completedAt < midDate) {
+          b.firstHalfCompleted++;
+        } else {
+          b.secondHalfCompleted++;
+        }
+      }
+    });
+
+    // Total days in period for consistency calculation
+    const totalDays = Math.ceil(periodMs / (24 * 60 * 60 * 1000));
+
+    const result = Array.from(buckets.entries()).map(([category, b]) => {
+      const completionRate = b.total > 0
+        ? Math.round((b.completed / b.total) * 100)
+        : 0;
+
+      const consistencyScore = Math.round((b.completedDays.size / totalDays) * 100);
+
+      const highPriorityRatio = b.highPriorityTotal > 0
+        ? Math.round((b.highPriorityCompleted / b.highPriorityTotal) * 100)
+        : completionRate; // fall back to overall rate if no high-priority tasks
+
+      const masteryScore = Math.min(100, Math.round(
+        completionRate * 0.5 +
+        consistencyScore * 0.3 +
+        highPriorityRatio * 0.2
+      ));
+
+      // Trend: compare first half vs second half completion counts
+      let trend: 'improving' | 'stable' | 'declining' = 'stable';
+      if (b.secondHalfCompleted > b.firstHalfCompleted * 1.2) trend = 'improving';
+      else if (b.secondHalfCompleted < b.firstHalfCompleted * 0.8) trend = 'declining';
+
+      const avgTimeMinutes = b.completed > 0
+        ? Math.round(b.totalTimeMinutes / b.completed)
+        : 0;
+
+      return {
+        category,
+        total: b.total,
+        completed: b.completed,
+        completionRate,
+        avgTimeMinutes,
+        highPriorityCompleted: b.highPriorityCompleted,
+        highPriorityTotal: b.highPriorityTotal,
+        consistencyScore,
+        masteryScore,
+        trend,
+        activeDays: b.completedDays.size,
+      };
+    });
+
+    // Sort by mastery score descending
+    return result.sort((a, b) => b.masteryScore - a.masteryScore);
+  },
+});
+
+// ─── Lag Indicators ───────────────────────────────────────────────────────────
+// Returns categories and priority buckets where the user is lagging.
+export const getLagIndicators = query({
+  args: {
+    period: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const period = args.period || 'month';
+    const allTodos = await ctx.db.query("todos").collect();
+    const now = new Date();
+
+    let periodMs: number;
+    switch (period) {
+      case 'week':    periodMs = 7  * 24 * 60 * 60 * 1000; break;
+      case 'quarter': periodMs = 90 * 24 * 60 * 60 * 1000; break;
+      default:        periodMs = 30 * 24 * 60 * 60 * 1000;
+    }
+    const startDate = new Date(now.getTime() - periodMs);
+
+    // All todos in period (not just completed)
+    const periodTodos = allTodos.filter(todo => {
+      const ref = todo.completedAt
+        ? new Date(todo.completedAt)
+        : todo.createdAt
+          ? new Date(todo.createdAt)
+          : new Date(todo._creationTime);
+      return ref >= startDate;
+    });
+
+    type CatLag = {
+      total: number;
+      completed: number;
+      overdueCount: number;
+      totalDaysOverdue: number;
+      lastCompletedAt: number | null;
+    };
+    const catMap = new Map<string, CatLag>();
+
+    const ensureCat = (cat: string) => {
+      if (!catMap.has(cat)) {
+        catMap.set(cat, {
+          total: 0,
+          completed: 0,
+          overdueCount: 0,
+          totalDaysOverdue: 0,
+          lastCompletedAt: null,
+        });
+      }
+      return catMap.get(cat)!;
+    };
+
+    periodTodos.forEach(todo => {
+      const cat = todo.mainCategory || todo.category || 'Uncategorized';
+      const c = ensureCat(cat);
+      c.total++;
+
+      if (todo.done) {
+        c.completed++;
+        const completedTs = todo.completedAt || todo._creationTime;
+        if (!c.lastCompletedAt || completedTs > c.lastCompletedAt) {
+          c.lastCompletedAt = completedTs;
+        }
+      } else if (todo.deadline) {
+        const deadline = new Date(todo.deadline);
+        if (deadline < now) {
+          c.overdueCount++;
+          const daysOverdue = Math.ceil((now.getTime() - deadline.getTime()) / (24 * 60 * 60 * 1000));
+          c.totalDaysOverdue += daysOverdue;
+        }
+      }
+    });
+
+    const lagCategories = Array.from(catMap.entries()).map(([category, c]) => {
+      const completionRate = c.total > 0
+        ? Math.round((c.completed / c.total) * 100)
+        : 0;
+      const overdueRatio = c.total > 0 ? c.overdueCount / c.total : 0;
+      const avgDaysOverdue = c.overdueCount > 0
+        ? Math.round(c.totalDaysOverdue / c.overdueCount)
+        : 0;
+
+      const lagScore = Math.min(100, Math.round(
+        overdueRatio * 40 +
+        (1 - completionRate / 100) * 40 +
+        Math.min(avgDaysOverdue / 30, 1) * 20
+      ));
+
+      const lastCompletedAt = c.lastCompletedAt
+        ? new Date(c.lastCompletedAt).toISOString().split('T')[0]
+        : null;
+
+      const daysSinceLastCompletion = c.lastCompletedAt
+        ? Math.floor((now.getTime() - c.lastCompletedAt) / (24 * 60 * 60 * 1000))
+        : null;
+
+      return {
+        category,
+        total: c.total,
+        completed: c.completed,
+        pendingCount: c.total - c.completed,
+        overdueCount: c.overdueCount,
+        completionRate,
+        avgDaysOverdue,
+        lagScore,
+        lastCompletedAt,
+        daysSinceLastCompletion,
+      };
+    });
+
+    // Priority lag
+    const priorities = ['high', 'medium', 'low'] as const;
+    const lagPriorities = priorities.map(priority => {
+      const pTodos = periodTodos.filter(t => t.priority === priority);
+      const completed = pTodos.filter(t => t.done).length;
+      const overdue = pTodos.filter(t => !t.done && t.deadline && new Date(t.deadline) < now).length;
+      return {
+        priority,
+        total: pTodos.length,
+        completed,
+        pendingCount: pTodos.length - completed,
+        overdueCount: overdue,
+        completionRate: pTodos.length > 0 ? Math.round((completed / pTodos.length) * 100) : 0,
+      };
+    });
+
+    // Overall lag score = weighted average of category lag scores
+    const overallLagScore = lagCategories.length > 0
+      ? Math.round(lagCategories.reduce((sum, c) => sum + c.lagScore, 0) / lagCategories.length)
+      : 0;
+
+    return {
+      lagCategories: lagCategories.sort((a, b) => b.lagScore - a.lagScore),
+      lagPriorities,
+      overallLagScore,
+    };
+  },
+});
+
+// ─── Missed Tasks Analysis ────────────────────────────────────────────────────
+// Returns overdue tasks, never-started tasks, and skipped recurring tasks.
+export const getMissedTasksAnalysis = query({
+  args: {},
+  handler: async (ctx) => {
+    const allTodos = await ctx.db.query("todos").collect();
+    const now = new Date();
+    const nowTs = now.getTime();
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+    // 1. Overdue tasks — not done, has deadline, deadline is in the past
+    const overdueTasks = allTodos
+      .filter(todo => !todo.done && todo.deadline && new Date(todo.deadline) < now)
+      .map(todo => {
+        const deadline = new Date(todo.deadline!);
+        const daysOverdue = Math.ceil((nowTs - deadline.getTime()) / (24 * 60 * 60 * 1000));
+        return {
+          id: todo._id,
+          text: todo.text,
+          deadline: todo.deadline!,
+          daysOverdue,
+          priority: todo.priority || 'none',
+          category: todo.mainCategory || todo.category || 'Uncategorized',
+        };
+      })
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+    // 2. Never-started tasks — not done, created >7 days ago, no time logged
+    const neverStartedTasks = allTodos
+      .filter(todo => {
+        if (todo.done) return false;
+        const createdAt = todo.createdAt
+          ? new Date(todo.createdAt).getTime()
+          : todo._creationTime;
+        const ageMs = nowTs - createdAt;
+        const hasTime = (todo.timeSpent || 0) > 0 || (todo.actualMinutes || 0) > 0;
+        return ageMs > sevenDaysMs && !hasTime;
+      })
+      .map(todo => {
+        const createdAt = todo.createdAt
+          ? new Date(todo.createdAt).getTime()
+          : todo._creationTime;
+        const createdDaysAgo = Math.floor((nowTs - createdAt) / (24 * 60 * 60 * 1000));
+        return {
+          id: todo._id,
+          text: todo.text,
+          createdDaysAgo,
+          priority: todo.priority || 'none',
+          category: todo.mainCategory || todo.category || 'Uncategorized',
+        };
+      })
+      .sort((a, b) => b.createdDaysAgo - a.createdDaysAgo);
+
+    // 3. Skipped recurring tasks — isRecurring=true, not done, last completion
+    //    is older than their pattern window
+    const recurringTodos = allTodos.filter(todo => todo.isRecurring);
+
+    // Find the most recent completion for each recurring task (by text match)
+    const completedRecurring = allTodos.filter(t => t.done && t.isRecurring);
+    const lastCompletionByText = new Map<string, number>();
+    completedRecurring.forEach(t => {
+      const ts = t.completedAt || t._creationTime;
+      const existing = lastCompletionByText.get(t.text);
+      if (!existing || ts > existing) {
+        lastCompletionByText.set(t.text, ts);
+      }
+    });
+
+    const patternWindowMs = (pattern: string | undefined, interval: number | undefined): number => {
+      switch (pattern) {
+        case 'daily':   return (interval || 1) * 24 * 60 * 60 * 1000;
+        case 'weekly':  return (interval || 1) * 7 * 24 * 60 * 60 * 1000;
+        case 'monthly': return (interval || 1) * 30 * 24 * 60 * 60 * 1000;
+        default:        return 7 * 24 * 60 * 60 * 1000; // default weekly
+      }
+    };
+
+    const skippedRecurring = recurringTodos
+      .filter(todo => {
+        if (todo.done) return false;
+        const windowMs = patternWindowMs(todo.recurringPattern, todo.recurringInterval);
+        const lastTs = lastCompletionByText.get(todo.text);
+        if (!lastTs) return true; // never completed
+        return (nowTs - lastTs) > windowMs;
+      })
+      .map(todo => {
+        const lastTs = lastCompletionByText.get(todo.text) || null;
+        const daysSinceLastCompletion = lastTs
+          ? Math.floor((nowTs - lastTs) / (24 * 60 * 60 * 1000))
+          : null;
+        return {
+          id: todo._id,
+          text: todo.text,
+          recurringPattern: todo.recurringPattern || 'custom',
+          recurringInterval: todo.recurringInterval || 1,
+          lastCompletedAt: lastTs ? new Date(lastTs).toISOString().split('T')[0] : null,
+          daysSinceLastCompletion,
+          priority: todo.priority || 'none',
+          category: todo.mainCategory || todo.category || 'Uncategorized',
+        };
+      })
+      .sort((a, b) => (b.daysSinceLastCompletion ?? 9999) - (a.daysSinceLastCompletion ?? 9999));
+
+    const criticalMissed = overdueTasks.filter(t => t.priority === 'high').length;
+
+    return {
+      overdueTasks,
+      neverStartedTasks,
+      skippedRecurring,
+      summary: {
+        totalMissed: overdueTasks.length + neverStartedTasks.length + skippedRecurring.length,
+        criticalMissed,
+        recurringMissed: skippedRecurring.length,
+        overdueCount: overdueTasks.length,
+        neverStartedCount: neverStartedTasks.length,
+      },
+    };
+  },
+});
