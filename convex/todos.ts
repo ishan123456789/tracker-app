@@ -28,6 +28,12 @@ export const add = mutation({
     recurringPattern: v.optional(v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("custom"))),
     recurringInterval: v.optional(v.number()),
     recurringDays: v.optional(v.array(v.number())),
+    // User-logged numeric metrics
+    countLabel: v.optional(v.string()),
+    count: v.optional(v.number()),
+    timeSpentMinutes: v.optional(v.number()),
+    distance: v.optional(v.number()),
+    distanceUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const todos = await ctx.db.query("todos").collect();
@@ -56,6 +62,12 @@ export const add = mutation({
       recurringDays: args.recurringDays,
       actualMinutes: 0,
       timerSessions: [],
+      // User-logged numeric metrics
+      countLabel: args.countLabel,
+      count: args.count,
+      timeSpentMinutes: args.timeSpentMinutes,
+      distance: args.distance,
+      distanceUnit: args.distanceUnit,
     });
 
     // If this is a subtask, update parent's subtasks array
@@ -92,6 +104,12 @@ export const update = mutation({
     recurringPattern: v.optional(v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("custom"))),
     recurringInterval: v.optional(v.float64()),
     recurringDays: v.optional(v.array(v.float64())),
+    // User-logged numeric metrics
+    countLabel: v.optional(v.union(v.string(), v.null())),
+    count: v.optional(v.union(v.float64(), v.null())),
+    timeSpentMinutes: v.optional(v.union(v.float64(), v.null())),
+    distance: v.optional(v.union(v.float64(), v.null())),
+    distanceUnit: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
     const { id, ...rest } = args;
@@ -100,7 +118,8 @@ export const update = mutation({
     const allowedFields = [
       'done', 'deadline', 'dueTime', 'priority', 'mainCategory', 'subcategory',
       'activityType', 'category', 'text', 'notes', 'tags', 'estimatedMinutes',
-      'isRecurring', 'recurringPattern', 'recurringInterval', 'recurringDays'
+      'isRecurring', 'recurringPattern', 'recurringInterval', 'recurringDays',
+      'countLabel', 'count', 'timeSpentMinutes', 'distance', 'distanceUnit',
     ];
 
     const updateData: any = {};
@@ -203,7 +222,11 @@ export const completeRecurringTask = mutation({
   args: {
     id: v.id("todos"),
     skipNext: v.optional(v.boolean()),
-    completeAll: v.optional(v.boolean())
+    completeAll: v.optional(v.boolean()),
+    // Metric values logged at completion time
+    count: v.optional(v.number()),
+    timeSpentMinutes: v.optional(v.number()),
+    distance: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const todo = await ctx.db.get(args.id);
@@ -261,12 +284,48 @@ export const completeRecurringTask = mutation({
 
     longestStreak = Math.max(longestStreak, currentStreak);
 
-    // Update the root todo with new streak stats
+    // ── Metric aggregation ──────────────────────────────────────────────────
+    // Read current values from the todo instance (saved by user before completing)
+    const completedCount = args.count ?? todo.count ?? 0;
+    const completedTime = args.timeSpentMinutes ?? todo.timeSpentMinutes ?? 0;
+    const completedDistance = args.distance ?? todo.distance ?? 0;
+
+    // Accumulate lifetime totals
+    const newTotalCount = (rootTodo.totalCount || 0) + completedCount;
+    const newTotalTimeMinutes = (rootTodo.totalTimeMinutes || 0) + completedTime;
+    const newTotalDistance = (rootTodo.totalDistance || 0) + completedDistance;
+
+    // Today's values: reset if it's a new day
+    const lastMetricDate = rootTodo.lastMetricDate;
+    let newTodayCount: number;
+    let newTodayTimeMinutes: number;
+    let newTodayDistance: number;
+
+    if (lastMetricDate === today) {
+      // Same day — accumulate
+      newTodayCount = (rootTodo.todayCount || 0) + completedCount;
+      newTodayTimeMinutes = (rootTodo.todayTimeMinutes || 0) + completedTime;
+      newTodayDistance = (rootTodo.todayDistance || 0) + completedDistance;
+    } else {
+      // New day — reset to current completion values
+      newTodayCount = completedCount;
+      newTodayTimeMinutes = completedTime;
+      newTodayDistance = completedDistance;
+    }
+
+    // Update the root todo with new streak stats + metric aggregates
     await ctx.db.patch(rootId, {
       currentStreak,
       longestStreak,
       totalCompleted,
       lastCompletedDate: today,
+      totalCount: newTotalCount,
+      totalTimeMinutes: newTotalTimeMinutes,
+      totalDistance: newTotalDistance,
+      todayCount: newTodayCount,
+      todayTimeMinutes: newTodayTimeMinutes,
+      todayDistance: newTodayDistance,
+      lastMetricDate: today,
     });
 
     // Mark current instance as done
@@ -310,7 +369,7 @@ export const completeRecurringTask = mutation({
       }
     }
 
-    // Create next instance, carrying streak stats forward
+    // Create next instance, carrying streak stats + metric aggregates + labels forward
     const nextDate = calculateNextDueDate(todo);
     if (nextDate) {
       await ctx.db.insert("todos", {
@@ -343,6 +402,21 @@ export const completeRecurringTask = mutation({
         actualMinutes: 0,
         timerSessions: [],
         position: (await getMaxPosition(ctx)) + 1,
+        // Propagate metric labels (set once, carry forward forever)
+        countLabel: todo.countLabel,
+        distanceUnit: todo.distanceUnit,
+        // Propagate metric aggregates for display on next instance
+        totalCount: newTotalCount,
+        totalTimeMinutes: newTotalTimeMinutes,
+        totalDistance: newTotalDistance,
+        todayCount: newTodayCount,
+        todayTimeMinutes: newTodayTimeMinutes,
+        todayDistance: newTodayDistance,
+        lastMetricDate: today,
+        // Reset per-completion values (user logs fresh each time)
+        count: undefined,
+        timeSpentMinutes: undefined,
+        distance: undefined,
       });
     }
   },

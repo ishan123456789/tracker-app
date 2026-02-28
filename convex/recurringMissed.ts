@@ -260,6 +260,16 @@ export const getAllRecurringStats = query({
         lastCompletedDate: todo.lastCompletedDate || null,
         deadline: todo.deadline || null,
         history,
+        // Metric aggregates
+        countLabel: todo.countLabel || null,
+        distanceUnit: todo.distanceUnit || "km",
+        totalCount: todo.totalCount || 0,
+        totalTimeMinutes: todo.totalTimeMinutes || 0,
+        totalDistance: todo.totalDistance || 0,
+        todayCount: todo.todayCount || 0,
+        todayTimeMinutes: todo.todayTimeMinutes || 0,
+        todayDistance: todo.todayDistance || 0,
+        lastMetricDate: todo.lastMetricDate || null,
       };
     });
 

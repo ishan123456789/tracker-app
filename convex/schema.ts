@@ -181,6 +181,22 @@ export default defineSchema({
       })),
       confidence: v.optional(v.number()), // Confidence in extraction
     })),
+
+    // User-logged numeric metrics (per completion)
+    countLabel: v.optional(v.string()),       // e.g. "pushups", "pages", "reps"
+    count: v.optional(v.number()),            // e.g. 20
+    timeSpentMinutes: v.optional(v.number()), // manually entered minutes (separate from timer)
+    distance: v.optional(v.number()),         // e.g. 5.2
+    distanceUnit: v.optional(v.string()),     // "km" | "mi" | "m"
+
+    // Recurring metric aggregates (live on root recurring todo)
+    totalCount: v.optional(v.number()),         // lifetime sum of count
+    totalTimeMinutes: v.optional(v.number()),   // lifetime sum of timeSpentMinutes
+    totalDistance: v.optional(v.number()),      // lifetime sum of distance
+    todayCount: v.optional(v.number()),         // count logged today
+    todayTimeMinutes: v.optional(v.number()),   // time logged today
+    todayDistance: v.optional(v.number()),      // distance logged today
+    lastMetricDate: v.optional(v.string()),     // ISO date for today-reset detection
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_team", ["teamId"])

@@ -72,6 +72,13 @@ export const TodoItem = ({
   const [editPriority, setEditPriority] = useState(todo.priority || 'medium');
   const [tagInput, setTagInput] = useState('');
 
+  // Numeric metric edit values
+  const [editCountLabel, setEditCountLabel] = useState(todo.countLabel || '');
+  const [editCount, setEditCount] = useState(todo.count != null ? String(todo.count) : '');
+  const [editTimeSpent, setEditTimeSpent] = useState(todo.timeSpentMinutes != null ? String(todo.timeSpentMinutes) : '');
+  const [editDistance, setEditDistance] = useState(todo.distance != null ? String(todo.distance) : '');
+  const [editDistanceUnit, setEditDistanceUnit] = useState(todo.distanceUnit || 'km');
+
   // Action menu state
   const [anchorEl, setAnchorEl] = useState(null);
   const menuOpen = Boolean(anchorEl);
@@ -127,6 +134,7 @@ export const TodoItem = ({
   }, [todo.text, todo.category]);
 
   // Update local edit states when todo changes
+  // Using todo._id + updatedAt as deps to avoid variable-length dep array issues
   useEffect(() => {
     setEditText(todo.text);
     setEditDeadline(todo.deadline || '');
@@ -138,7 +146,13 @@ export const TodoItem = ({
     setEditCategory(todo.category || '');
     setEditTags(todo.tags || []);
     setEditPriority(todo.priority || 'medium');
-  }, [todo.text, todo.deadline, todo.dueTime, todo.notes, todo.mainCategory, todo.subcategory, todo.activityType, todo.category, todo.tags, todo.priority]);
+    setEditCountLabel(todo.countLabel || '');
+    setEditCount(todo.count != null ? String(todo.count) : '');
+    setEditTimeSpent(todo.timeSpentMinutes != null ? String(todo.timeSpentMinutes) : '');
+    setEditDistance(todo.distance != null ? String(todo.distance) : '');
+    setEditDistanceUnit(todo.distanceUnit || 'km');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todo._id, todo.updatedAt, todo.text, todo.deadline, todo.dueTime, todo.notes, todo.mainCategory, todo.subcategory, todo.activityType, todo.category, todo.priority, todo.countLabel, todo.count, todo.timeSpentMinutes, todo.distance, todo.distanceUnit]);
 
   const handleToggle = async () => {
     if (todo.done) {
@@ -233,6 +247,37 @@ export const TodoItem = ({
       }
     }
     setEditingNotes(false);
+  };
+
+  const handleSaveMetrics = async () => {
+    const newCountLabel = editCountLabel.trim() || null;
+    const newCount = editCount !== '' ? parseFloat(editCount) : null;
+    const newTimeSpent = editTimeSpent !== '' ? parseFloat(editTimeSpent) : null;
+    const newDistance = editDistance !== '' ? parseFloat(editDistance) : null;
+    const newDistanceUnit = editDistanceUnit || 'km';
+
+    const hasChanges =
+      newCountLabel !== (todo.countLabel || null) ||
+      newCount !== (todo.count ?? null) ||
+      newTimeSpent !== (todo.timeSpentMinutes ?? null) ||
+      newDistance !== (todo.distance ?? null) ||
+      newDistanceUnit !== (todo.distanceUnit || 'km');
+
+    if (hasChanges) {
+      try {
+        await updateTodo({
+          id: todo._id,
+          countLabel: newCountLabel,
+          count: newCount,
+          timeSpentMinutes: newTimeSpent,
+          distance: newDistance,
+          distanceUnit: newDistanceUnit,
+        });
+        onUpdate?.();
+      } catch (error) {
+        console.error('Failed to update metrics:', error);
+      }
+    }
   };
 
   const handleSaveCategories = async () => {
@@ -787,6 +832,31 @@ export const TodoItem = ({
               {todo.subtasks && todo.subtasks.length > 0 && (
                 <Typography variant="caption" title={`${todo.subtasks.length} subtasks`} sx={{ fontSize: '0.8rem' }}>📋</Typography>
               )}
+              {/* Metric chips */}
+              {todo.count != null && (
+                <Chip
+                  label={todo.countLabel ? `${todo.count} ${todo.countLabel}` : `#${todo.count}`}
+                  size="small"
+                  title={todo.countLabel ? `Count: ${todo.count} ${todo.countLabel}` : `Count: ${todo.count}`}
+                  sx={{ height: 18, fontSize: '0.65rem', backgroundColor: '#e3f2fd', color: '#1565c0', '& .MuiChip-label': { px: 0.75 } }}
+                />
+              )}
+              {todo.timeSpentMinutes != null && (
+                <Chip
+                  label={`⏱ ${todo.timeSpentMinutes}m`}
+                  size="small"
+                  title={`Time spent: ${todo.timeSpentMinutes} min`}
+                  sx={{ height: 18, fontSize: '0.65rem', backgroundColor: '#f3e5f5', color: '#6a1b9a', '& .MuiChip-label': { px: 0.75 } }}
+                />
+              )}
+              {todo.distance != null && (
+                <Chip
+                  label={`📍 ${todo.distance}${todo.distanceUnit || 'km'}`}
+                  size="small"
+                  title={`Distance: ${todo.distance} ${todo.distanceUnit || 'km'}`}
+                  sx={{ height: 18, fontSize: '0.65rem', backgroundColor: '#e8f5e9', color: '#2e7d32', '& .MuiChip-label': { px: 0.75 } }}
+                />
+              )}
             </Box>
           </Box>
         </div>
@@ -940,6 +1010,73 @@ export const TodoItem = ({
                   Last completed: {todo.lastCompletedDate}
                 </Typography>
               )}
+
+              {/* Metric aggregates for recurring tasks */}
+              {(todo.totalCount > 0 || todo.totalTimeMinutes > 0 || todo.totalDistance > 0) && (
+                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 1 }}>
+                    📊 METRIC TOTALS
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    {todo.totalCount > 0 && (
+                      <>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6" sx={{ lineHeight: 1, color: '#1565c0' }}>
+                            {todo.totalCount}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            Total {todo.countLabel || 'Count'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6" sx={{ lineHeight: 1, color: '#1976d2' }}>
+                            {todo.todayCount || 0}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            Today {todo.countLabel || 'Count'}
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
+                    {todo.totalTimeMinutes > 0 && (
+                      <>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6" sx={{ lineHeight: 1, color: '#6a1b9a' }}>
+                            {todo.totalTimeMinutes >= 60
+                              ? `${Math.floor(todo.totalTimeMinutes / 60)}h ${todo.totalTimeMinutes % 60}m`
+                              : `${todo.totalTimeMinutes}m`}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Total Time</Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6" sx={{ lineHeight: 1, color: '#7b1fa2' }}>
+                            {(todo.todayTimeMinutes || 0) >= 60
+                              ? `${Math.floor((todo.todayTimeMinutes || 0) / 60)}h ${(todo.todayTimeMinutes || 0) % 60}m`
+                              : `${todo.todayTimeMinutes || 0}m`}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Today Time</Typography>
+                        </Box>
+                      </>
+                    )}
+                    {todo.totalDistance > 0 && (
+                      <>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6" sx={{ lineHeight: 1, color: '#2e7d32' }}>
+                            {todo.totalDistance}{todo.distanceUnit || 'km'}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Total Dist</Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6" sx={{ lineHeight: 1, color: '#388e3c' }}>
+                            {todo.todayDistance || 0}{todo.distanceUnit || 'km'}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>Today Dist</Typography>
+                        </Box>
+                      </>
+                    )}
+                  </Box>
+                </Box>
+              )}
             </Box>
           )}
 
@@ -983,6 +1120,98 @@ export const TodoItem = ({
                 </Typography>
               </Box>
             )}
+          </Box>
+
+          {/* Metrics Section */}
+          <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, backgroundColor: 'background.paper', border: 1, borderColor: 'divider' }}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              📊 Metrics
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {/* Count label + count */}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <TextField
+                  label="Label"
+                  placeholder="e.g. pushups, pages"
+                  value={editCountLabel}
+                  onChange={(e) => setEditCountLabel(e.target.value)}
+                  onBlur={handleSaveMetrics}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveMetrics()}
+                  size="small"
+                  variant="outlined"
+                  sx={{ width: 150 }}
+                  inputProps={{ maxLength: 30 }}
+                />
+                <TextField
+                  label="Count"
+                  type="number"
+                  placeholder="0"
+                  value={editCount}
+                  onChange={(e) => setEditCount(e.target.value)}
+                  onBlur={handleSaveMetrics}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveMetrics()}
+                  size="small"
+                  variant="outlined"
+                  sx={{ width: 100 }}
+                  inputProps={{ min: 0, step: 1 }}
+                />
+                {editCountLabel && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                    {editCountLabel}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Time spent */}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField
+                  label="Time (min)"
+                  type="number"
+                  placeholder="0"
+                  value={editTimeSpent}
+                  onChange={(e) => setEditTimeSpent(e.target.value)}
+                  onBlur={handleSaveMetrics}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveMetrics()}
+                  size="small"
+                  variant="outlined"
+                  sx={{ width: 120 }}
+                  inputProps={{ min: 0, step: 1 }}
+                />
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>minutes</Typography>
+              </Box>
+
+              {/* Distance + unit */}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField
+                  label="Distance"
+                  type="number"
+                  placeholder="0"
+                  value={editDistance}
+                  onChange={(e) => setEditDistance(e.target.value)}
+                  onBlur={handleSaveMetrics}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveMetrics()}
+                  size="small"
+                  variant="outlined"
+                  sx={{ width: 120 }}
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+                <TextField
+                  select
+                  label="Unit"
+                  value={editDistanceUnit}
+                  onChange={(e) => { setEditDistanceUnit(e.target.value); }}
+                  onBlur={handleSaveMetrics}
+                  size="small"
+                  variant="outlined"
+                  sx={{ width: 80 }}
+                  SelectProps={{ native: true }}
+                >
+                  <option value="km">km</option>
+                  <option value="mi">mi</option>
+                  <option value="m">m</option>
+                </TextField>
+              </Box>
+            </Box>
           </Box>
 
           {/* Time Tracker */}

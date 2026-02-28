@@ -210,6 +210,66 @@ function HabitCard({ stat, today }) {
           </Tooltip>
         </Box>
 
+        {/* Metric aggregates row */}
+        {(stat.totalCount > 0 || stat.totalTimeMinutes > 0 || stat.totalDistance > 0) && (
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
+            {stat.totalCount > 0 && (
+              <>
+                <Tooltip title={`Total ${stat.countLabel || 'count'} overall`}>
+                  <Chip
+                    label={`📊 ${stat.totalCount} ${stat.countLabel || ''} total`}
+                    size="small"
+                    sx={{ backgroundColor: '#e3f2fd', color: '#1565c0', fontSize: '0.65rem', height: 20 }}
+                  />
+                </Tooltip>
+                <Tooltip title={`${stat.countLabel || 'Count'} logged today`}>
+                  <Chip
+                    label={`📊 ${stat.todayCount} today`}
+                    size="small"
+                    sx={{ backgroundColor: '#bbdefb', color: '#1565c0', fontSize: '0.65rem', height: 20 }}
+                  />
+                </Tooltip>
+              </>
+            )}
+            {stat.totalTimeMinutes > 0 && (
+              <>
+                <Tooltip title="Total time spent overall">
+                  <Chip
+                    label={`⏱ ${stat.totalTimeMinutes >= 60 ? `${Math.floor(stat.totalTimeMinutes / 60)}h ${stat.totalTimeMinutes % 60}m` : `${stat.totalTimeMinutes}m`} total`}
+                    size="small"
+                    sx={{ backgroundColor: '#f3e5f5', color: '#6a1b9a', fontSize: '0.65rem', height: 20 }}
+                  />
+                </Tooltip>
+                <Tooltip title="Time spent today">
+                  <Chip
+                    label={`⏱ ${stat.todayTimeMinutes >= 60 ? `${Math.floor(stat.todayTimeMinutes / 60)}h ${stat.todayTimeMinutes % 60}m` : `${stat.todayTimeMinutes}m`} today`}
+                    size="small"
+                    sx={{ backgroundColor: '#e1bee7', color: '#6a1b9a', fontSize: '0.65rem', height: 20 }}
+                  />
+                </Tooltip>
+              </>
+            )}
+            {stat.totalDistance > 0 && (
+              <>
+                <Tooltip title="Total distance overall">
+                  <Chip
+                    label={`📍 ${stat.totalDistance}${stat.distanceUnit} total`}
+                    size="small"
+                    sx={{ backgroundColor: '#e8f5e9', color: '#2e7d32', fontSize: '0.65rem', height: 20 }}
+                  />
+                </Tooltip>
+                <Tooltip title="Distance today">
+                  <Chip
+                    label={`📍 ${stat.todayDistance}${stat.distanceUnit} today`}
+                    size="small"
+                    sx={{ backgroundColor: '#c8e6c9', color: '#2e7d32', fontSize: '0.65rem', height: 20 }}
+                  />
+                </Tooltip>
+              </>
+            )}
+          </Box>
+        )}
+
         {/* Compliance bar */}
         {total > 0 && (
           <Box sx={{ mb: 1.5 }}>
