@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import SmartSuggestions from './SmartSuggestions.jsx';
 
 const FocusMode = ({ isOpen, onClose, selectedTodo = null }) => {
   const [currentTodo, setCurrentTodo] = useState(selectedTodo);
@@ -12,6 +13,7 @@ const FocusMode = ({ isOpen, onClose, selectedTodo = null }) => {
   const [customMinutes, setCustomMinutes] = useState(25);
   const [showSettings, setShowSettings] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showSmartPicker, setShowSmartPicker] = useState(false);
 
   const intervalRef = useRef(null);
   const audioRef = useRef(null);
@@ -296,28 +298,53 @@ const FocusMode = ({ isOpen, onClose, selectedTodo = null }) => {
               <span className="task-text">{currentTodo.text}</span>
               <button
                 className="change-task-button"
-                onClick={() => setCurrentTodo(null)}
+                onClick={() => { setCurrentTodo(null); setShowSmartPicker(false); }}
               >
                 Change
               </button>
             </div>
           ) : (
             <div className="task-selector">
-              <select
-                onChange={(e) => {
-                  const todoId = e.target.value;
-                  const todo = activeTodos.find(t => t._id === todoId);
-                  setCurrentTodo(todo);
-                }}
-                value=""
-              >
-                <option value="">Select a task to focus on...</option>
-                {activeTodos.map(todo => (
-                  <option key={todo._id} value={todo._id}>
-                    {todo.text}
-                  </option>
-                ))}
-              </select>
+              {/* Toggle between smart picker and manual select */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <button
+                  className={`mode-button ${showSmartPicker ? 'active' : ''}`}
+                  onClick={() => setShowSmartPicker(true)}
+                  style={{ flex: 1 }}
+                >
+                  🎯 Smart Pick
+                </button>
+                <button
+                  className={`mode-button ${!showSmartPicker ? 'active' : ''}`}
+                  onClick={() => setShowSmartPicker(false)}
+                  style={{ flex: 1 }}
+                >
+                  📋 All Tasks
+                </button>
+              </div>
+
+              {showSmartPicker ? (
+                <SmartSuggestions
+                  onSelectTask={(task) => setCurrentTodo(task)}
+                  timeAvailable={customMinutes}
+                />
+              ) : (
+                <select
+                  onChange={(e) => {
+                    const todoId = e.target.value;
+                    const todo = activeTodos.find(t => t._id === todoId);
+                    setCurrentTodo(todo);
+                  }}
+                  value=""
+                >
+                  <option value="">Select a task to focus on...</option>
+                  {activeTodos.map(todo => (
+                    <option key={todo._id} value={todo._id}>
+                      {todo.text}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
         </div>

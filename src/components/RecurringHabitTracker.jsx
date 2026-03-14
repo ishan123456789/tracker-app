@@ -141,6 +141,14 @@ function complianceColor(rate) {
 
 // ─── Single Habit Card ────────────────────────────────────────────────────────
 
+function getStreakMilestone(streak) {
+  if (streak >= 365) return { badge: '💎', label: '1 Year!', color: '#7b1fa2' };
+  if (streak >= 100) return { badge: '🌟', label: '100 Days!', color: '#1565c0' };
+  if (streak >= 30) return { badge: '⭐', label: '30 Days!', color: '#f57f17' };
+  if (streak >= 7) return { badge: '🔥', label: '7 Days!', color: '#e64a19' };
+  return null;
+}
+
 function HabitCard({ stat, today }) {
   const [expanded, setExpanded] = useState(false);
   const total = stat.totalCompleted + stat.totalMissed;
@@ -150,9 +158,51 @@ function HabitCard({ stat, today }) {
     ? stat.history.filter(h => h.status === 'missed').slice(-5).reverse()
     : [];
 
+  // Streak at-risk: has a streak ≥ 3 but last completion was yesterday or earlier
+  const isStreakAtRisk = stat.currentStreak >= 3 && stat.lastCompletedDate && stat.lastCompletedDate < today;
+
+  const milestone = getStreakMilestone(stat.currentStreak);
+
   return (
-    <Card variant="outlined" sx={{ mb: 2 }}>
+    <Card
+      variant="outlined"
+      sx={{
+        mb: 2,
+        borderColor: isStreakAtRisk ? 'warning.main' : undefined,
+        borderWidth: isStreakAtRisk ? 2 : 1,
+      }}
+    >
       <CardContent sx={{ pb: '12px !important' }}>
+        {/* At-risk warning banner */}
+        {isStreakAtRisk && (
+          <Box sx={{
+            display: 'flex', alignItems: 'center', gap: 1,
+            mb: 1.5, p: 1, borderRadius: 1,
+            backgroundColor: '#fff8e1',
+            border: '1px solid #ffe082',
+          }}>
+            <Typography sx={{ fontSize: '1rem' }}>⚠️</Typography>
+            <Typography variant="caption" sx={{ color: '#e65100', fontWeight: 600 }}>
+              Streak at risk! Complete today to keep your {stat.currentStreak}-day streak alive.
+            </Typography>
+          </Box>
+        )}
+
+        {/* Milestone banner */}
+        {milestone && stat.currentStreak > 0 && (
+          <Box sx={{
+            display: 'flex', alignItems: 'center', gap: 1,
+            mb: 1.5, p: 1, borderRadius: 1,
+            backgroundColor: '#f3e5f5',
+            border: '1px solid #ce93d8',
+          }}>
+            <Typography sx={{ fontSize: '1.2rem' }}>{milestone.badge}</Typography>
+            <Typography variant="caption" sx={{ color: milestone.color, fontWeight: 700 }}>
+              {milestone.label} streak milestone reached!
+            </Typography>
+          </Box>
+        )}
+
         {/* Header row */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
           <Box sx={{ flex: 1, mr: 1 }}>
@@ -173,14 +223,15 @@ function HabitCard({ stat, today }) {
 
         {/* Stat chips row */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
-          <Tooltip title="Current streak (consecutive completions)">
+          <Tooltip title={`Current streak: ${stat.currentStreak} consecutive completions${isStreakAtRisk ? ' — at risk today!' : ''}`}>
             <Chip
-              label={`🔥 ${stat.currentStreak}`}
+              label={`${isStreakAtRisk ? '⚠️' : milestone ? milestone.badge : '🔥'} ${stat.currentStreak}`}
               size="small"
               sx={{
-                backgroundColor: stat.currentStreak >= 7 ? '#ff6d00' : stat.currentStreak >= 3 ? '#ff9800' : '#fff3e0',
-                color: stat.currentStreak >= 3 ? 'white' : 'text.primary',
-                fontWeight: 600,
+                backgroundColor: isStreakAtRisk ? '#fff3e0' : stat.currentStreak >= 30 ? '#7b1fa2' : stat.currentStreak >= 7 ? '#ff6d00' : stat.currentStreak >= 3 ? '#ff9800' : '#fff3e0',
+                color: isStreakAtRisk ? '#e65100' : stat.currentStreak >= 3 ? 'white' : 'text.primary',
+                fontWeight: 700,
+                animation: isStreakAtRisk ? 'pulse 2s infinite' : 'none',
               }}
             />
           </Tooltip>

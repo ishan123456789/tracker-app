@@ -34,6 +34,14 @@ export const add = mutation({
     timeSpentMinutes: v.optional(v.number()),
     distance: v.optional(v.number()),
     distanceUnit: v.optional(v.string()),
+    // Phase 1: Top 3, Effort, Difficulty
+    effortLevel: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("deep_work"))),
+    difficulty: v.optional(v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))),
+    // Phase 2: Time Blocking, Life Areas
+    scheduledStart: v.optional(v.string()),
+    scheduledEnd: v.optional(v.string()),
+    timeBlockDate: v.optional(v.string()),
+    lifeArea: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const todos = await ctx.db.query("todos").collect();
@@ -68,6 +76,14 @@ export const add = mutation({
       timeSpentMinutes: args.timeSpentMinutes,
       distance: args.distance,
       distanceUnit: args.distanceUnit,
+      // Phase 1: Top 3, Effort, Difficulty
+      effortLevel: args.effortLevel,
+      difficulty: args.difficulty,
+      // Phase 2: Time Blocking, Life Areas
+      scheduledStart: args.scheduledStart,
+      scheduledEnd: args.scheduledEnd,
+      timeBlockDate: args.timeBlockDate,
+      lifeArea: args.lifeArea,
     });
 
     // If this is a subtask, update parent's subtasks array
@@ -110,6 +126,14 @@ export const update = mutation({
     timeSpentMinutes: v.optional(v.union(v.float64(), v.null())),
     distance: v.optional(v.union(v.float64(), v.null())),
     distanceUnit: v.optional(v.union(v.string(), v.null())),
+    // Phase 1: Top 3, Effort, Difficulty
+    effortLevel: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("deep_work"))),
+    difficulty: v.optional(v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))),
+    // Phase 2: Time Blocking, Life Areas
+    scheduledStart: v.optional(v.union(v.string(), v.null())),
+    scheduledEnd: v.optional(v.union(v.string(), v.null())),
+    timeBlockDate: v.optional(v.union(v.string(), v.null())),
+    lifeArea: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
     const { id, ...rest } = args;
@@ -120,6 +144,7 @@ export const update = mutation({
       'activityType', 'category', 'text', 'notes', 'tags', 'estimatedMinutes',
       'isRecurring', 'recurringPattern', 'recurringInterval', 'recurringDays',
       'countLabel', 'count', 'timeSpentMinutes', 'distance', 'distanceUnit',
+      'effortLevel', 'difficulty', 'scheduledStart', 'scheduledEnd', 'timeBlockDate', 'lifeArea',
     ];
 
     const updateData: any = {};
@@ -713,5 +738,124 @@ export const getAutoTrackingPreview = query({
       previewEntry,
       confidence: args.extractedMetrics.confidence || 0.8,
     };
+  },
+});
+
+// Phase 1: Top 3 Daily Focus
+export const getTop3Today = query({
+  args: {},
+  handler: async (ctx) => {
+    const today = new Date().toISOString().split('T')[0];
+    const todos = await ctx.db.query("todos").collect();
+    return todos
+      .filter(todo => todo.isTop3 && todo.top3Date === today)
+      .sort((a, b) => (a.top3Order || 0) - (b.top3Order || 0));
+  },
+});
+
+export const setTop3 = mutation({
+  args: {
+    id: v.id("todos"),
+    top3Order: v.number(), // 1, 2, or 3
+  },
+  handler: async (ctx, args) => {
+    if (args.top3Order < 1 || args.top3Order > 3) {
+      throw new Error("top3Order must be 1, 2, or 3");
+    }
+    const today = new Date().toISOString().split('T')[0];
+    const todos = await ctx.db.query("todos").collect();
+
+    // Check if another task already has this order for today
+    const existing = todos.find(
+      t => t.top3Date === today && t.top3Order === args.top3Order && t._id !== args.id
+    );
+    if (existing) {
+      // Swap or remove the existing one
+      await ctx.db.patch(existing._id, { isTop3: false, top3Date: undefined, top3Order: undefined });
+    }
+
+    return await ctx.db.patch(args.id, {
+      isTop3: true,
+      top3Date: today,
+      top3Order: args.top3Order,
+    });
+  },
+});
+
+export const removeFromTop3 = mutation({
+  args: {
+    id: v.id("todos"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.id, {
+      isTop3: false,
+      top3Date: undefined,
+      top3Order: undefined,
+    });
+  },
+});
+
+export const clearTop3ForDate = mutation({
+  args: {
+    date: v.string(), // ISO date
+  },
+  handler: async (ctx, args) => {
+    const todos = await ctx.db.query("todos").collect();
+    const toUpdate = todos.filter(t => t.top3Date === args.date && t.isTop3);
+
+    for (const todo of toUpdate) {
+      await ctx.db.patch(todo._id, {
+        isTop3: false,
+        top3Date: undefined,
+        top3Order: undefined,
+      });
+    }
+    return { cleared: toUpdate.length };
+  },
+});
+
+// Phase 2: Time Blocking
+export const setTimeBlock = mutation({
+  args: {
+    id: v.id("todos"),
+    scheduledStart: v.string(),
+    scheduledEnd: v.string(),
+    timeBlockDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.id, {
+      scheduledStart: args.scheduledStart,
+      scheduledEnd: args.scheduledEnd,
+      timeBlockDate: args.timeBlockDate,
+    });
+  },
+});
+
+export const clearTimeBlock = mutation({
+  args: {
+    id: v.id("todos"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.id, {
+      scheduledStart: undefined,
+      scheduledEnd: undefined,
+      timeBlockDate: undefined,
+    });
+  },
+});
+
+export const getTimeBlocksForDate = query({
+  args: {
+    date: v.string(), // ISO date
+  },
+  handler: async (ctx, args) => {
+    const todos = await ctx.db.query("todos").collect();
+    return todos
+      .filter(todo => todo.timeBlockDate === args.date && todo.scheduledStart)
+      .sort((a, b) => {
+        const aStart = a.scheduledStart || "";
+        const bStart = b.scheduledStart || "";
+        return aStart.localeCompare(bStart);
+      });
   },
 });

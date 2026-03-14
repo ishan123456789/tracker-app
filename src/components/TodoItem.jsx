@@ -857,6 +857,71 @@ export const TodoItem = ({
                   sx={{ height: 18, fontSize: '0.65rem', backgroundColor: '#e8f5e9', color: '#2e7d32', '& .MuiChip-label': { px: 0.75 } }}
                 />
               )}
+              {/* Effort Level chip */}
+              {todo.effortLevel && (
+                <Chip
+                  label={
+                    todo.effortLevel === 'deep_work' ? '⚡⚡⚡ Deep'
+                    : todo.effortLevel === 'medium' ? '⚡⚡ Med'
+                    : '⚡ Quick'
+                  }
+                  size="small"
+                  title={`Effort: ${todo.effortLevel}`}
+                  sx={{
+                    height: 18,
+                    fontSize: '0.65rem',
+                    backgroundColor: todo.effortLevel === 'deep_work' ? '#e8eaf6' : todo.effortLevel === 'medium' ? '#fff8e1' : '#f1f8e9',
+                    color: todo.effortLevel === 'deep_work' ? '#3949ab' : todo.effortLevel === 'medium' ? '#f57f17' : '#33691e',
+                    '& .MuiChip-label': { px: 0.75 }
+                  }}
+                />
+              )}
+              {/* Difficulty chip */}
+              {todo.difficulty && (
+                <Chip
+                  label={
+                    todo.difficulty === 'hard' ? '🔴 Hard'
+                    : todo.difficulty === 'medium' ? '🟡 Med'
+                    : '🟢 Easy'
+                  }
+                  size="small"
+                  title={`Difficulty: ${todo.difficulty}`}
+                  sx={{
+                    height: 18,
+                    fontSize: '0.65rem',
+                    backgroundColor: todo.difficulty === 'hard' ? '#ffebee' : todo.difficulty === 'medium' ? '#fff8e1' : '#f1f8e9',
+                    color: todo.difficulty === 'hard' ? '#c62828' : todo.difficulty === 'medium' ? '#f57f17' : '#2e7d32',
+                    '& .MuiChip-label': { px: 0.75 }
+                  }}
+                />
+              )}
+              {/* Time block chip */}
+              {todo.timeBlockDate && todo.scheduledStart && (
+                <Chip
+                  label={`🕐 ${todo.scheduledStart}${todo.scheduledEnd ? `–${todo.scheduledEnd}` : ''}`}
+                  size="small"
+                  title={`Scheduled: ${todo.timeBlockDate} ${todo.scheduledStart}–${todo.scheduledEnd || ''}`}
+                  sx={{ height: 18, fontSize: '0.65rem', backgroundColor: '#e3f2fd', color: '#1565c0', '& .MuiChip-label': { px: 0.75 } }}
+                />
+              )}
+              {/* Life area chip */}
+              {todo.lifeArea && (
+                <Chip
+                  label={`🌐 ${todo.lifeArea}`}
+                  size="small"
+                  title={`Life area: ${todo.lifeArea}`}
+                  sx={{ height: 18, fontSize: '0.65rem', backgroundColor: '#fce4ec', color: '#880e4f', '& .MuiChip-label': { px: 0.75 } }}
+                />
+              )}
+              {/* Top 3 badge */}
+              {todo.isTop3 && (
+                <Chip
+                  label={`⭐ Top ${todo.top3Order ?? ''}`}
+                  size="small"
+                  title="In today's Top 3 focus"
+                  sx={{ height: 18, fontSize: '0.65rem', backgroundColor: '#fff9c4', color: '#f57f17', fontWeight: 700, '& .MuiChip-label': { px: 0.75 } }}
+                />
+              )}
             </Box>
           </Box>
         </div>

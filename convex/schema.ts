@@ -197,11 +197,40 @@ export default defineSchema({
     todayTimeMinutes: v.optional(v.number()),   // time logged today
     todayDistance: v.optional(v.number()),      // distance logged today
     lastMetricDate: v.optional(v.string()),     // ISO date for today-reset detection
+
+    // Phase 1: Top 3 Daily Focus
+    isTop3: v.optional(v.boolean()),            // Marked as a Top 3 task
+    top3Date: v.optional(v.string()),           // ISO date when it was set as Top 3
+    top3Order: v.optional(v.number()),          // 1, 2, or 3 ordering
+
+    // Phase 1: Effort/Energy Level
+    effortLevel: v.optional(v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("deep_work")
+    )),
+
+    // Phase 1: Task Difficulty
+    difficulty: v.optional(v.union(
+      v.literal("easy"),
+      v.literal("medium"),
+      v.literal("hard")
+    )),
+
+    // Phase 2: Time Blocking
+    scheduledStart: v.optional(v.string()),     // ISO datetime or "HH:MM" for scheduled start
+    scheduledEnd: v.optional(v.string()),       // ISO datetime or "HH:MM" for scheduled end
+    timeBlockDate: v.optional(v.string()),      // ISO date for which day this block is scheduled
+
+    // Phase 3: Life Areas
+    lifeArea: v.optional(v.string()),           // Links to life area name
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_team", ["teamId"])
     .index("by_owner", ["ownerId"])
-    .index("by_assigned", ["assignedTo"]),
+    .index("by_assigned", ["assignedTo"])
+    .index("by_top3_date", ["top3Date"])
+    .index("by_time_block_date", ["timeBlockDate"]),
 
   // Todo templates table
   todoTemplates: defineTable({
@@ -564,4 +593,15 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .index("by_category", ["category"])
     .index("by_usage", ["usageCount"]),
+
+  // Phase 3: Life Areas for balance tracking
+  lifeAreas: defineTable({
+    name: v.string(),              // Career, Health, Learning, Relationships, Creativity
+    icon: v.string(),              // Emoji
+    color: v.string(),             // Hex color
+    targetPercentage: v.number(),  // Ideal % of time/tasks for this area
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_active", ["isActive"]),
 });

@@ -21,6 +21,7 @@ import type * as automation from "../automation.js";
 import type * as categoryHierarchy from "../categoryHierarchy.js";
 import type * as comments from "../comments.js";
 import type * as integrations from "../integrations.js";
+import type * as lifeAreas from "../lifeAreas.js";
 import type * as migrations from "../migrations.js";
 import type * as recurringMissed from "../recurringMissed.js";
 import type * as sections from "../sections.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   categoryHierarchy: typeof categoryHierarchy;
   comments: typeof comments;
   integrations: typeof integrations;
+  lifeAreas: typeof lifeAreas;
   migrations: typeof migrations;
   recurringMissed: typeof recurringMissed;
   sections: typeof sections;

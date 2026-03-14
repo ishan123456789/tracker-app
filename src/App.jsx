@@ -8,6 +8,13 @@ import GoalTracker from './components/GoalTracker.jsx';
 import ReportGenerator from './components/ReportGenerator.jsx';
 import ActivityCategorySettings from './components/ActivityCategorySettings.jsx';
 import RecurringHabitTracker from './components/RecurringHabitTracker.jsx';
+import Top3Focus from './components/Top3Focus.jsx';
+import QuickCapture from './components/QuickCapture.jsx';
+import WeeklyReview from './components/WeeklyReview.jsx';
+import WeeklyProgressDashboard from './components/WeeklyProgressDashboard.jsx';
+import LifeAreaBalance from './components/LifeAreaBalance.jsx';
+import SmartSuggestions from './components/SmartSuggestions.jsx';
+import DailyTimeline from './components/DailyTimeline.jsx';
 import {
   Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper, Button, IconButton, Tabs, Tab,
   useMediaQuery, useTheme, Drawer, List, ListItem, ListItemIcon, ListItemText, Menu, MenuItem,
@@ -16,7 +23,7 @@ import {
 import { ThemeProvider } from '@mui/material/styles';
 import {
   Brightness4, Brightness7, CenterFocusStrong, Analytics, Psychology, EmojiEvents, Assessment, Home,
-  Menu as MenuIcon, MoreVert, Loop as LoopIcon
+  Menu as MenuIcon, MoreVert, Loop as LoopIcon, RateReview as RateReviewIcon
 } from '@mui/icons-material';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
@@ -46,6 +53,7 @@ const AppContent = () => {
     { label: 'Insights', icon: <Psychology />, component: 'insights' },
     { label: 'Goals', icon: <EmojiEvents />, component: 'goals' },
     { label: 'Habits', icon: <LoopIcon />, component: 'habits' },
+    { label: 'Review', icon: <RateReviewIcon />, component: 'review' },
     { label: 'Reports', icon: <Assessment />, component: 'reports' }
   ];
 
@@ -470,6 +478,15 @@ const AppContent = () => {
               </Button>
             </Box>
 
+            {/* Top 3 Focus */}
+            <Top3Focus />
+
+            {/* Quick Capture */}
+            <QuickCapture />
+
+            {/* Weekly Progress Dashboard */}
+            <WeeklyProgressDashboard />
+
             {/* Main Content */}
             <TodoList onFocusMode={handleFocusMode} />
 
@@ -496,8 +513,16 @@ const AppContent = () => {
         {/* Habits Tab */}
         {activeTab === 4 && <RecurringHabitTracker />}
 
+        {/* Review Tab */}
+        {activeTab === 5 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <WeeklyReview />
+            <LifeAreaBalance />
+          </Box>
+        )}
+
         {/* Reports Tab */}
-        {activeTab === 5 && <ReportGenerator />}
+        {activeTab === 6 && <ReportGenerator />}
       </Container>
 
       {/* Mobile Bottom Navigation Bar */}
@@ -506,34 +531,40 @@ const AppContent = () => {
           className="mobile-bottom-nav"
           elevation={3}
         >
-          <BottomNavigation
-            value={activeTab}
-            onChange={(e, newValue) => setActiveTab(newValue)}
-            showLabels
-            sx={{
-              height: 56,
-              '& .MuiBottomNavigationAction-root': {
-                minWidth: 0,
-                padding: '6px 4px 8px',
-                fontSize: '0.65rem',
-                color: 'text.secondary',
-              },
-              '& .MuiBottomNavigationAction-root.Mui-selected': {
-                color: 'primary.main',
-              },
-              '& .MuiBottomNavigationAction-label': {
-                fontSize: '0.65rem !important',
-                marginTop: '2px',
-              },
-            }}
-          >
-            <BottomNavigationAction label="Tasks" icon={<Home sx={{ fontSize: 22 }} />} />
-            <BottomNavigationAction label="Analytics" icon={<Analytics sx={{ fontSize: 22 }} />} />
-            <BottomNavigationAction label="Insights" icon={<Psychology sx={{ fontSize: 22 }} />} />
-            <BottomNavigationAction label="Goals" icon={<EmojiEvents sx={{ fontSize: 22 }} />} />
-            <BottomNavigationAction label="Habits" icon={<LoopIcon sx={{ fontSize: 22 }} />} />
-            <BottomNavigationAction label="Reports" icon={<Assessment sx={{ fontSize: 22 }} />} />
-          </BottomNavigation>
+          <Box sx={{ overflowX: 'auto', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
+            <BottomNavigation
+              value={activeTab}
+              onChange={(e, newValue) => setActiveTab(newValue)}
+              showLabels
+              sx={{
+                height: 56,
+                minWidth: 'max-content',
+                width: '100%',
+                '& .MuiBottomNavigationAction-root': {
+                  minWidth: 52,
+                  maxWidth: 72,
+                  padding: '6px 4px 8px',
+                  fontSize: '0.65rem',
+                  color: 'text.secondary',
+                },
+                '& .MuiBottomNavigationAction-root.Mui-selected': {
+                  color: 'primary.main',
+                },
+                '& .MuiBottomNavigationAction-label': {
+                  fontSize: '0.6rem !important',
+                  marginTop: '2px',
+                },
+              }}
+            >
+              <BottomNavigationAction label="Tasks" icon={<Home sx={{ fontSize: 20 }} />} />
+              <BottomNavigationAction label="Analytics" icon={<Analytics sx={{ fontSize: 20 }} />} />
+              <BottomNavigationAction label="Insights" icon={<Psychology sx={{ fontSize: 20 }} />} />
+              <BottomNavigationAction label="Goals" icon={<EmojiEvents sx={{ fontSize: 20 }} />} />
+              <BottomNavigationAction label="Habits" icon={<LoopIcon sx={{ fontSize: 20 }} />} />
+              <BottomNavigationAction label="Review" icon={<RateReviewIcon sx={{ fontSize: 20 }} />} />
+              <BottomNavigationAction label="Reports" icon={<Assessment sx={{ fontSize: 20 }} />} />
+            </BottomNavigation>
+          </Box>
         </Paper>
       )}
 
