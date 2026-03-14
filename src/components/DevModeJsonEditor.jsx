@@ -20,6 +20,36 @@ import {
 import { Close as CloseIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 
+// Template shown when user clicks "+ Add New Todo"
+const NEW_TODO_TEMPLATE = {
+  text: "New todo title",
+  done: false,
+  priority: "medium",
+  deadline: null,
+  dueTime: null,
+  notes: null,
+  tags: [],
+  isRecurring: false,
+  recurringPattern: null,
+  recurringInterval: null,
+  recurringDays: null,
+  mainCategory: null,
+  subcategory: null,
+  activityType: null,
+  estimatedMinutes: null,
+  effortLevel: null,
+  difficulty: null,
+  lifeArea: null,
+  scheduledStart: null,
+  scheduledEnd: null,
+  timeBlockDate: null,
+  countLabel: null,
+  count: null,
+  timeSpentMinutes: null,
+  distance: null,
+  distanceUnit: null,
+};
+
 // Fields that are read-only (system-managed) — shown in JSON but not patchable
 const READ_ONLY_FIELDS = new Set([
   '_id', '_creationTime', 'timerStarted', 'timerSessions', 'doneAt',
@@ -53,6 +83,7 @@ const DevModeJsonEditor = ({ open, onClose }) => {
   const todosRaw = useQuery(api.todos.get);
   const todos = todosRaw || [];
   const updateFromJson = useMutation(api.todos.updateFromJson);
+  const addTodo = useMutation(api.todos.add);
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
@@ -61,6 +92,7 @@ const DevModeJsonEditor = ({ open, onClose }) => {
   const [originalJson, setOriginalJson] = useState('');
   const [parseError, setParseError] = useState(null);
   const [changedCount, setChangedCount] = useState(0);
+  const [newCount, setNewCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveResults, setSaveResults] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -68,28 +100,53 @@ const DevModeJsonEditor = ({ open, onClose }) => {
 
   // Track whether the editor has been initialized for the current open session
   const initializedRef = useRef(false);
+  // Flag set after a successful save — triggers refresh when Convex pushes updated data
+  const pendingRefreshRef = useRef(false);
+  // Store filter/search in refs so the refresh effect can read current values without stale closure
+  const filterRef = useRef(filter);
+  const searchRef = useRef(search);
+  useEffect(() => { filterRef.current = filter; }, [filter]);
+  useEffect(() => { searchRef.current = search; }, [search]);
 
   // Initialize JSON only when dialog first opens AND Convex has returned data.
-  // We depend on `todosRaw` (not `todos`) so we can distinguish "loading" (undefined)
-  // from "loaded but empty" ([]). Once initialized, the ref prevents re-init on
-  // subsequent Convex subscription updates while the editor is open.
+  // Also handles post-save refresh: when pendingRefreshRef is set and todosRaw updates,
+  // we re-serialize the fresh data into the editor.
   useEffect(() => {
-    if (open && !initializedRef.current && todosRaw !== undefined) {
-      const filtered = getFilteredTodos(todos, filter, search);
+    if (!open) {
+      // Reset so next open re-initializes fresh
+      initializedRef.current = false;
+      pendingRefreshRef.current = false;
+      return;
+    }
+
+    if (todosRaw === undefined) return; // Still loading
+
+    if (pendingRefreshRef.current) {
+      // Post-save refresh: Convex has pushed updated data — re-serialize into editor
+      pendingRefreshRef.current = false;
+      const filtered = getFilteredTodos(todosRaw, filterRef.current, searchRef.current);
+      const json = JSON.stringify(filtered, null, 2);
+      setJsonText(json);
+      setOriginalJson(json);
+      setChangedCount(0);
+      setNewCount(0);
+      return;
+    }
+
+    if (!initializedRef.current) {
+      // First open — initialize editor with current todos
+      const filtered = getFilteredTodos(todosRaw, filterRef.current, searchRef.current);
       const json = JSON.stringify(filtered, null, 2);
       setJsonText(json);
       setOriginalJson(json);
       setParseError(null);
       setChangedCount(0);
+      setNewCount(0);
       setSaveResults([]);
       initializedRef.current = true;
     }
-    if (!open) {
-      // Reset so next open re-initializes fresh
-      initializedRef.current = false;
-    }
   }, [open, todosRaw]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Note: filter/search intentionally excluded — filter changes are handled by handleFilterChange
+  // Note: filter/search read via refs to avoid stale closures without re-triggering this effect
 
   // Re-initialize when filter or search changes (only while open and not mid-edit)
   const handleFilterChange = useCallback((newFilter) => {
@@ -100,6 +157,7 @@ const DevModeJsonEditor = ({ open, onClose }) => {
     setOriginalJson(json);
     setParseError(null);
     setChangedCount(0);
+    setNewCount(0);
     setSaveResults([]);
   }, [todos, search]);
 
@@ -111,8 +169,43 @@ const DevModeJsonEditor = ({ open, onClose }) => {
     setOriginalJson(json);
     setParseError(null);
     setChangedCount(0);
+    setNewCount(0);
     setSaveResults([]);
   }, [todos, filter]);
+
+  // Append a new blank todo template to the JSON editor
+  const handleAddNewTodo = useCallback(() => {
+    try {
+      const parsed = JSON.parse(jsonText);
+      if (!Array.isArray(parsed)) return;
+      const updated = [...parsed, { ...NEW_TODO_TEMPLATE }];
+      const newJson = JSON.stringify(updated, null, 2);
+      setJsonText(newJson);
+      // Re-run diff detection on the new value
+      const originalParsed = JSON.parse(originalJson);
+      const originalMap = new Map(originalParsed.map(t => [t._id, t]));
+      let changed = 0;
+      let newItems = 0;
+      for (const item of updated) {
+        if (!item._id) {
+          newItems++;
+        } else {
+          const old = originalMap.get(item._id);
+          if (old && JSON.stringify(old) !== JSON.stringify(item)) changed++;
+        }
+      }
+      setChangedCount(changed);
+      setNewCount(newItems);
+      setParseError(null);
+    } catch {
+      // If current JSON is invalid, replace with just the template
+      const newJson = JSON.stringify([{ ...NEW_TODO_TEMPLATE }], null, 2);
+      setJsonText(newJson);
+      setNewCount(1);
+      setChangedCount(0);
+      setParseError(null);
+    }
+  }, [jsonText, originalJson]);
 
   // Parse JSON and detect changes on every keystroke
   const handleJsonChange = useCallback((value) => {
@@ -136,19 +229,26 @@ const DevModeJsonEditor = ({ open, onClose }) => {
 
       setParseError(null);
 
-      // Detect changes by comparing _id
+      // Detect changes and new items
       const originalParsed = JSON.parse(originalJson);
       const originalMap = new Map(originalParsed.map(t => [t._id, t]));
 
       let changed = 0;
+      let newItems = 0;
       for (const newTodo of parsed) {
-        const oldTodo = originalMap.get(newTodo._id);
-        if (oldTodo && JSON.stringify(oldTodo) !== JSON.stringify(newTodo)) {
-          changed++;
+        if (!newTodo._id) {
+          // No _id = new item to be created
+          newItems++;
+        } else {
+          const oldTodo = originalMap.get(newTodo._id);
+          if (oldTodo && JSON.stringify(oldTodo) !== JSON.stringify(newTodo)) {
+            changed++;
+          }
         }
       }
 
       setChangedCount(changed);
+      setNewCount(newItems);
     } catch (err) {
       // Extract line number from error message if possible
       const match = err.message.match(/position (\d+)/);
@@ -165,12 +265,13 @@ const DevModeJsonEditor = ({ open, onClose }) => {
     setJsonText(originalJson);
     setParseError(null);
     setChangedCount(0);
+    setNewCount(0);
     setSaveResults([]);
   }, [originalJson]);
 
-  // Apply changes to database
+  // Apply changes to database — handles both updates (has _id) and creates (no _id)
   const handleApply = useCallback(async () => {
-    if (parseError || changedCount === 0 || saving) return;
+    if (parseError || (changedCount === 0 && newCount === 0) || saving) return;
 
     setSaving(true);
     setSaveResults([]);
@@ -183,10 +284,59 @@ const DevModeJsonEditor = ({ open, onClose }) => {
       const results = [];
 
       for (const newTodo of parsed) {
-        if (!newTodo._id) continue;
-        const oldTodo = originalMap.get(newTodo._id);
+        // ── CREATE: item has no _id ──────────────────────────────────────────
+        if (!newTodo._id) {
+          if (!newTodo.text || !newTodo.text.trim()) {
+            results.push({
+              text: '(new item)',
+              success: false,
+              error: 'New todo must have a non-empty "text" field',
+            });
+            continue;
+          }
+          try {
+            // Build create args — only pass fields that api.todos.add accepts
+            const createArgs = {
+              text: newTodo.text,
+              deadline: newTodo.deadline || undefined,
+              dueTime: newTodo.dueTime || undefined,
+              priority: newTodo.priority || 'medium',
+              mainCategory: newTodo.mainCategory || undefined,
+              subcategory: newTodo.subcategory || undefined,
+              activityType: newTodo.activityType || undefined,
+              category: newTodo.category || undefined,
+              estimatedMinutes: newTodo.estimatedMinutes || undefined,
+              notes: newTodo.notes || undefined,
+              tags: newTodo.tags && newTodo.tags.length > 0 ? newTodo.tags : undefined,
+              isRecurring: newTodo.isRecurring || undefined,
+              recurringPattern: newTodo.recurringPattern || undefined,
+              recurringInterval: newTodo.recurringInterval || undefined,
+              recurringDays: newTodo.recurringDays && newTodo.recurringDays.length > 0 ? newTodo.recurringDays : undefined,
+              countLabel: newTodo.countLabel || undefined,
+              count: newTodo.count != null ? newTodo.count : undefined,
+              timeSpentMinutes: newTodo.timeSpentMinutes != null ? newTodo.timeSpentMinutes : undefined,
+              distance: newTodo.distance != null ? newTodo.distance : undefined,
+              distanceUnit: newTodo.distanceUnit || undefined,
+              effortLevel: newTodo.effortLevel || undefined,
+              difficulty: newTodo.difficulty || undefined,
+              scheduledStart: newTodo.scheduledStart || undefined,
+              scheduledEnd: newTodo.scheduledEnd || undefined,
+              timeBlockDate: newTodo.timeBlockDate || undefined,
+              lifeArea: newTodo.lifeArea || undefined,
+            };
+            // Remove undefined keys so Convex doesn't complain
+            Object.keys(createArgs).forEach(k => createArgs[k] === undefined && delete createArgs[k]);
 
-        // Only update if changed
+            await addTodo(createArgs);
+            results.push({ text: newTodo.text, success: true, action: 'created' });
+          } catch (err) {
+            results.push({ text: newTodo.text, success: false, error: err.message });
+          }
+          continue;
+        }
+
+        // ── UPDATE: item has _id ─────────────────────────────────────────────
+        const oldTodo = originalMap.get(newTodo._id);
         if (oldTodo && JSON.stringify(oldTodo) !== JSON.stringify(newTodo)) {
           try {
             // Build editable fields object — exclude read-only fields
@@ -202,34 +352,18 @@ const DevModeJsonEditor = ({ open, onClose }) => {
               fields: editableFields,
             });
 
-            results.push({
-              id: newTodo._id,
-              text: newTodo.text,
-              success: true,
-            });
+            results.push({ id: newTodo._id, text: newTodo.text, success: true, action: 'updated' });
           } catch (err) {
-            results.push({
-              id: newTodo._id,
-              text: newTodo.text,
-              success: false,
-              error: err.message,
-            });
+            results.push({ id: newTodo._id, text: newTodo.text, success: false, error: err.message });
           }
         }
       }
 
       setSaveResults(results);
 
-      // Refresh JSON from the updated todos after Convex propagates changes
-      // Use a short delay to allow Convex subscription to update
-      setTimeout(() => {
-        // Re-read from current todos state (Convex will have updated by now)
-        const filtered = getFilteredTodos(todos, filter, search);
-        const json = JSON.stringify(filtered, null, 2);
-        setJsonText(json);
-        setOriginalJson(json);
-        setChangedCount(0);
-      }, 800);
+      // Signal that the next Convex subscription update should refresh the editor.
+      // The useEffect watching todosRaw will pick this up and re-serialize fresh data.
+      pendingRefreshRef.current = true;
     } catch (err) {
       setSaveResults([{
         success: false,
@@ -238,7 +372,7 @@ const DevModeJsonEditor = ({ open, onClose }) => {
     } finally {
       setSaving(false);
     }
-  }, [parseError, changedCount, saving, jsonText, originalJson, updateFromJson, todos, filter, search]);
+  }, [parseError, changedCount, newCount, saving, jsonText, originalJson, updateFromJson, addTodo, todos, filter, search]);
 
   // Keyboard shortcut: Ctrl+S / Cmd+S to apply
   useEffect(() => {
@@ -378,9 +512,17 @@ const DevModeJsonEditor = ({ open, onClose }) => {
                   size="small"
                 />
               )}
-              {changedCount === 0 && !parseError && (
+              {newCount > 0 && (
+                <Chip
+                  label={`${newCount} new todo${newCount !== 1 ? 's' : ''} to create`}
+                  color="success"
+                  variant="filled"
+                  size="small"
+                />
+              )}
+              {changedCount === 0 && newCount === 0 && (
                 <Typography variant="caption" color="text.secondary">
-                  No changes detected
+                  No changes detected — tip: remove "_id" from an object to create it as a new todo
                 </Typography>
               )}
             </>
@@ -406,7 +548,10 @@ const DevModeJsonEditor = ({ open, onClose }) => {
                   mb: 0.25,
                 }}
               >
-                {result.success ? '✅' : '❌'} {result.text || '(unknown)'}{result.error ? `: ${result.error}` : ''}
+                {result.success ? '✅' : '❌'}{' '}
+                {result.action === 'created' ? '🆕 ' : ''}{result.text || '(unknown)'}
+                {result.action && result.success ? ` — ${result.action}` : ''}
+                {result.error ? `: ${result.error}` : ''}
               </Typography>
             ))}
           </Paper>
@@ -420,14 +565,24 @@ const DevModeJsonEditor = ({ open, onClose }) => {
         )}
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, gap: 1, borderTop: 1, borderColor: 'divider' }}>
-        <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-          Tip: Press Ctrl+S / ⌘+S to apply changes
+      <DialogActions sx={{ p: 2, gap: 1, borderTop: 1, borderColor: 'divider', flexWrap: 'wrap' }}>
+        <Typography variant="caption" color="text.secondary" sx={{ flex: 1, minWidth: 120 }}>
+          Tip: Press Ctrl+S / ⌘+S to apply · Remove "_id" to create a new todo
         </Typography>
+        <Button
+          onClick={handleAddNewTodo}
+          variant="outlined"
+          color="success"
+          disabled={saving}
+          size="small"
+        >
+          + Add New Todo
+        </Button>
         <Button
           onClick={handleReset}
           variant="outlined"
-          disabled={saving || jsonText === originalJson}
+          disabled={saving || (jsonText === originalJson)}
+          size="small"
         >
           Reset to Original
         </Button>
@@ -435,9 +590,12 @@ const DevModeJsonEditor = ({ open, onClose }) => {
           onClick={handleApply}
           variant="contained"
           color="primary"
-          disabled={!!parseError || changedCount === 0 || saving}
+          disabled={!!parseError || (changedCount === 0 && newCount === 0) || saving}
         >
-          {saving ? 'Applying…' : `Apply Changes to DB${changedCount > 0 ? ` (${changedCount})` : ''}`}
+          {saving
+            ? 'Applying…'
+            : `Apply to DB${changedCount + newCount > 0 ? ` (${changedCount > 0 ? `${changedCount} update${changedCount !== 1 ? 's' : ''}` : ''}${changedCount > 0 && newCount > 0 ? ', ' : ''}${newCount > 0 ? `${newCount} new` : ''})` : ''}`
+          }
         </Button>
       </DialogActions>
     </Dialog>
