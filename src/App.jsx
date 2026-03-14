@@ -14,6 +14,7 @@ import WeeklyProgressDashboard from './components/WeeklyProgressDashboard.jsx';
 import LifeAreaBalance from './components/LifeAreaBalance.jsx';
 import SmartSuggestions from './components/SmartSuggestions.jsx';
 import DailyTimeline from './components/DailyTimeline.jsx';
+import DevModeJsonEditor from './components/DevModeJsonEditor.jsx';
 import {
   Container, Typography, AppBar, Toolbar, CssBaseline, Box, Paper, Button, IconButton, Tabs, Tab,
   useMediaQuery, useTheme, Drawer, List, ListItem, ListItemIcon, ListItemText, Menu, MenuItem,
@@ -22,7 +23,7 @@ import {
 import { ThemeProvider } from '@mui/material/styles';
 import {
   Brightness4, Brightness7, CenterFocusStrong, Analytics, Psychology, EmojiEvents, Assessment, Home,
-  Menu as MenuIcon, MoreVert, Loop as LoopIcon, RateReview as RateReviewIcon
+  Menu as MenuIcon, MoreVert, Loop as LoopIcon, RateReview as RateReviewIcon, Code as CodeIcon
 } from '@mui/icons-material';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
@@ -35,6 +36,7 @@ const AppContent = () => {
   const [showActivitySettings, setShowActivitySettings] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileStatsMenuAnchor, setMobileStatsMenuAnchor] = useState(null);
+  const [devMode, setDevMode] = useState(false);
 
   const todos = useQuery(api.todos.get) || [];
   const { darkMode, toggleDarkMode, theme } = useThemeMode();
@@ -156,6 +158,16 @@ const AppContent = () => {
 
           <IconButton
             color="inherit"
+            onClick={() => setDevMode(true)}
+            sx={{ mr: isMobile ? 1 : 2 }}
+            aria-label="developer mode"
+            title="Developer Mode — JSON Editor"
+          >
+            <CodeIcon />
+          </IconButton>
+
+          <IconButton
+            color="inherit"
             onClick={toggleDarkMode}
             sx={{ mr: isMobile ? 0 : 2 }}
             aria-label="toggle dark mode"
@@ -218,6 +230,10 @@ const AppContent = () => {
       >
         <Box sx={{ width: 250, pt: 2 }}>
            <List>
+             <ListItem button onClick={() => { setDevMode(true); setMobileMenuOpen(false); }}>
+               <ListItemIcon><CodeIcon /></ListItemIcon>
+               <ListItemText primary="Dev Mode (JSON)" />
+             </ListItem>
              <ListItem button onClick={() => { setShowActivitySettings(true); setMobileMenuOpen(false); }}>
                <ListItemText primary="Activity Settings" />
              </ListItem>
@@ -516,6 +532,12 @@ const AppContent = () => {
       <ActivityCategorySettings
         isOpen={showActivitySettings}
         onClose={() => setShowActivitySettings(false)}
+      />
+
+      {/* Developer Mode JSON Editor */}
+      <DevModeJsonEditor
+        open={devMode}
+        onClose={() => setDevMode(false)}
       />
 
       {/* Global Keyboard Shortcuts */}

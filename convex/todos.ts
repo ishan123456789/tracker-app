@@ -736,6 +736,44 @@ export const clearTimeBlock = mutation({
   },
 });
 
+// Developer Mode: Update todo from JSON object
+export const updateFromJson = mutation({
+  args: {
+    id: v.id("todos"),
+    fields: v.any(), // Validated and sanitized in handler
+  },
+  handler: async (ctx, args) => {
+    // Allowlist of editable fields only
+    const EDITABLE_FIELDS = [
+      'text', 'done', 'deadline', 'dueTime', 'priority',
+      'mainCategory', 'subcategory', 'activityType', 'category',
+      'notes', 'tags', 'estimatedMinutes', 'isRecurring',
+      'recurringPattern', 'recurringInterval', 'recurringDays',
+      'countLabel', 'count', 'timeSpentMinutes', 'distance', 'distanceUnit',
+      'effortLevel', 'difficulty', 'scheduledStart', 'scheduledEnd',
+      'timeBlockDate', 'lifeArea', 'isTop3', 'top3Date', 'top3Order',
+      'position', 'currentStreak', 'longestStreak', 'totalMissed',
+      'totalCompleted', 'lastCompletedDate',
+    ];
+
+    // Build sanitized patch object
+    const patch: any = { updatedAt: Date.now() };
+    for (const key of EDITABLE_FIELDS) {
+      if (key in args.fields) {
+        patch[key] = args.fields[key];
+      }
+    }
+
+    // Auto-set doneAt when done status changes
+    if (patch.done !== undefined) {
+      patch.doneAt = patch.done ? Date.now() : undefined;
+    }
+
+    // Apply patch to database
+    await ctx.db.patch(args.id, patch);
+  },
+});
+
 export const getTimeBlocksForDate = query({
   args: {
     date: v.string(), // ISO date

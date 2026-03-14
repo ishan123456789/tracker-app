@@ -578,4 +578,25 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_active", ["isActive"]),
+
+  // Sections for activity tracking (e.g., Chess games, Reading log, etc.)
+  sections: defineTable({
+    title: v.string(),             // Section title (e.g., "Chess Games", "Reading Log")
+    description: v.optional(v.string()),
+    workspaceId: v.optional(v.id("workspaces")),
+    ownerId: v.optional(v.id("users")),
+    columns: v.array(v.object({
+      name: v.string(),            // Column name (e.g., "Date", "Opponent", "Result")
+      type: v.string(),            // Column type (text, number, date, select, etc.)
+      options: v.optional(v.array(v.string())), // For select type columns
+      allowMultiple: v.optional(v.boolean()), // For multi-select columns
+    })),
+    rows: v.optional(v.array(v.any())), // Data rows in the section
+    entries: v.optional(v.array(v.any())), // Legacy field for backward compatibility
+    isActive: v.optional(v.boolean()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_owner", ["ownerId"]),
 });
