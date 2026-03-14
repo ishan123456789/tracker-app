@@ -24,7 +24,7 @@ const QuickCapture = () => {
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   const parsed = parseQuickCapture(input);
-  const preview = formatParsedResult(parsed);
+  const _preview = formatParsedResult(parsed);
 
   const handleSubmit = useCallback(async () => {
     if (!input.trim()) return;

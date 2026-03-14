@@ -9,8 +9,6 @@ import {
   CardContent,
   Chip,
   Grid,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 
 const DailyTimeline = ({ date = null }) => {
@@ -18,8 +16,6 @@ const DailyTimeline = ({ date = null }) => {
   const selectedDate = date || new Date().toISOString().split('T')[0];
   const timeBlocks = useQuery(api.todos.getTimeBlocksForDate, { date: selectedDate }) || [];
 
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   const hours = Array.from({ length: 18 }, (_, i) => i + 6); // 6 AM to 11 PM
 

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { getDefaultRulesForCategory } from '../utils/MetricExtractor';
 
-const ActivityCategoryMapper = ({ isOpen, onClose, onSave }) => {
+const ActivityCategoryMapper = ({ isOpen, onClose }) => {
   const [mappings, setMappings] = useState([]);
   const [selectedMapping, setSelectedMapping] = useState(null);
   const [isEditing, setIsEditing] = useState(false);

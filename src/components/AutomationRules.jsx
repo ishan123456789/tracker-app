@@ -81,7 +81,6 @@ const AutomationRules = () => {
   // Actions
   const generateTaskSuggestions = useAction(api.automation.generateTaskSuggestions);
   const analyzeTaskPatterns = useAction(api.automation.analyzeTaskPatterns);
-  const categorizeTask = useAction(api.automation.categorizeTask);
 
   const triggerTypes = [
     { value: 'todo_created', label: 'When a task is created' },

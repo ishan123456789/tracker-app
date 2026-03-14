@@ -45,9 +45,8 @@ const IntegrationsHub = () => {
   const { currentWorkspace, hasWorkspaceRole } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [configDialog, setConfigDialog] = useState({ open: false, integration: null });
-  const [webhookDialog, setWebhookDialog] = useState(false);
+  const [, setWebhookDialog] = useState(false);
   const [importDialog, setImportDialog] = useState(false);
-  const [exportDialog, setExportDialog] = useState(false);
 
   // Queries
   const integrations = useQuery(
@@ -61,10 +60,8 @@ const IntegrationsHub = () => {
   );
 
   // Mutations
-  const createIntegration = useMutation(api.integrations.createIntegration);
   const updateIntegration = useMutation(api.integrations.updateIntegration);
   const deleteIntegration = useMutation(api.integrations.deleteIntegration);
-  const createWebhook = useMutation(api.integrations.createWebhook);
 
   const availableIntegrations = [
     {

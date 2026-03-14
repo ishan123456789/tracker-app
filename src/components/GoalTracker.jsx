@@ -65,7 +65,6 @@ const GoalTracker = () => {
   const goals = useQuery(api.analytics.getGoals) || [];
   const todos = useQuery(api.todos.get) || [];
   const createGoal = useMutation(api.analytics.createGoal);
-  const updateGoalProgress = useMutation(api.analytics.updateGoalProgress);
 
   // Get unique categories for goal targeting
   const categories = useMemo(() => {

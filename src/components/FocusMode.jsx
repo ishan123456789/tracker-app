@@ -16,7 +16,6 @@ const FocusMode = ({ isOpen, onClose, selectedTodo = null }) => {
   const [showSmartPicker, setShowSmartPicker] = useState(false);
 
   const intervalRef = useRef(null);
-  const audioRef = useRef(null);
 
   const todos = useQuery(api.todos.get);
   const startTimer = useMutation(api.todos.startTimer);

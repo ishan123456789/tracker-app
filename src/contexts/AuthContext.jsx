@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useConvexAuth } from 'convex/react';
 import { useQuery } from 'convex/react';
@@ -54,15 +55,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('currentWorkspaceId', workspace._id);
   };
 
-  const createWorkspace = async (name, description) => {
-    try {
-      // This would be called from components using the mutation
-      // The workspace list will automatically update via the query
-      return true;
-    } catch (error) {
-      console.error('Error creating workspace:', error);
-      throw error;
-    }
+  const createWorkspace = async () => {
+    // This would be called from components using the mutation
+    // The workspace list will automatically update via the query
+    return true;
   };
 
   const value = {

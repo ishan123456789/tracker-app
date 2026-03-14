@@ -60,7 +60,7 @@ const RecurringTaskDialog = ({ isOpen, onClose, onSave, initialData = {} }) => {
     switch (recurringData.recurringPattern) {
       case 'daily':
         return 'Every day';
-      case 'weekly':
+      case 'weekly': {
         if (recurringData.recurringDays.length === 0) {
           return 'Every week';
         }
@@ -69,6 +69,7 @@ const RecurringTaskDialog = ({ isOpen, onClose, onSave, initialData = {} }) => {
           .map(d => daysOfWeek.find(day => day.value === d)?.label)
           .join(', ');
         return `Every week on ${dayNames}`;
+      }
       case 'monthly':
         return 'Every month';
       case 'custom':

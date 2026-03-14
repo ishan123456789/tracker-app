@@ -8,7 +8,6 @@ const AutoTrackingPreview = ({
   activityCategory,
   onConfirm,
   onCancel,
-  onModify
 }) => {
   const [previewData, setPreviewData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -231,7 +230,6 @@ const AutoTrackingPreview = ({
 
 // Simplified version for inline preview (without full modal)
 export const AutoTrackingInlinePreview = ({
-  todo,
   extractedMetrics,
   activityCategory
 }) => {

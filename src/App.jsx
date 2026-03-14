@@ -25,7 +25,7 @@ import {
   Brightness4, Brightness7, CenterFocusStrong, Analytics, Psychology, EmojiEvents, Assessment, Home,
   Menu as MenuIcon, MoreVert, Loop as LoopIcon, RateReview as RateReviewIcon, Code as CodeIcon
 } from '@mui/icons-material';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
 import { ThemeContextProvider, useThemeMode } from './contexts/ThemeContext.jsx';
 
@@ -42,7 +42,6 @@ const AppContent = () => {
   const { darkMode, toggleDarkMode, theme } = useThemeMode();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
-  const isSmallMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   const tabs = [
     { label: 'Dashboard', icon: <Home />, component: 'dashboard' },

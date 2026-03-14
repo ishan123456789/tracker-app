@@ -58,7 +58,7 @@ const OverdueList = ({ tasks }) => {
 
   return (
     <List disablePadding>
-      {tasks.map((task, idx) => (
+      {tasks.map((task) => (
         <ListItem
           key={String(task.id)}
           disableGutters
@@ -410,7 +410,7 @@ const MissedTasksPanel = ({ missedData, loading }) => {
         sx={{ mb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}
         variant="fullWidth"
       >
-        {tabs.map((tab, idx) => (
+        {tabs.map((tab) => (
           <Tab
             key={tab.label}
             label={

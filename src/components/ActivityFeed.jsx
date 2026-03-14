@@ -34,7 +34,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 
 const ActivityFeed = () => {
-  const { currentWorkspace, currentUser } = useAuth();
+  const { currentWorkspace } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [filter, setFilter] = useState('all');
 

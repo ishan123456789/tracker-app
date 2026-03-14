@@ -39,7 +39,6 @@ export const TodoItem = ({
   todo,
   handleToggleTodo,
   removeTodo,
-  handleUpdateDeadline,
   onUpdate,
   onFocus,
   onDuplicate
@@ -67,7 +66,6 @@ export const TodoItem = ({
   const [editMainCategory, setEditMainCategory] = useState(todo.mainCategory || '');
   const [editSubcategory, setEditSubcategory] = useState(todo.subcategory || '');
   const [editActivityType, setEditActivityType] = useState(todo.activityType || '');
-  const [editCategory, setEditCategory] = useState(todo.category || '');
   const [editTags, setEditTags] = useState(todo.tags || []);
   const [editPriority, setEditPriority] = useState(todo.priority || 'medium');
   const [tagInput, setTagInput] = useState('');
@@ -108,11 +106,6 @@ export const TodoItem = ({
     } : "skip"
   );
 
-  // Fallback to legacy category mapping if no hierarchical categories
-  const legacyAutoTrackingMappings = useQuery(
-    api.activityCategories.getMappingsByCategory,
-    !todo.mainCategory && todo.category ? { category: todo.category } : "skip"
-  );
 
   const isPastDeadline = todo.deadline && new Date(todo.deadline) < new Date();
   const isRunning = !!todo.timerStarted;
@@ -143,7 +136,6 @@ export const TodoItem = ({
     setEditMainCategory(todo.mainCategory || '');
     setEditSubcategory(todo.subcategory || '');
     setEditActivityType(todo.activityType || '');
-    setEditCategory(todo.category || '');
     setEditTags(todo.tags || []);
     setEditPriority(todo.priority || 'medium');
     setEditCountLabel(todo.countLabel || '');
@@ -451,7 +443,7 @@ export const TodoItem = ({
     }
   };
 
-  const getPriorityIcon = (priority) => {
+  const _getPriorityIcon = (priority) => {
     switch (priority) {
       case 'high': return '🔴';
       case 'medium': return '🟡';

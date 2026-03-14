@@ -49,14 +49,13 @@ import LagDetectorPanel from './LagDetectorPanel';
 import MissedTasksPanel from './MissedTasksPanel';
 
 const ProductivityInsights = () => {
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [, setRefreshKey] = useState(0);
   const [period, setPeriod] = useState('month');
 
   // ── Existing queries ────────────────────────────────────────────────────────
   const todos = useQuery(api.todos.get) || [];
   const insights = useQuery(api.analytics.getProductivityInsights);
   const productivityMetrics = useQuery(api.analytics.getProductivityMetrics);
-  const categoryPerformance = useQuery(api.analytics.getCategoryPerformance);
 
   // ── New queries ─────────────────────────────────────────────────────────────
   const masteryStats   = useQuery(api.analytics.getTaskMasteryStats,   { period });

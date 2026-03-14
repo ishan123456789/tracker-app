@@ -8,8 +8,6 @@ import {
   Card,
   CardContent,
   Grid,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import {
   BarChart,
@@ -29,8 +27,6 @@ import {
 
 const WeeklyProgressDashboard = () => {
   const todos = useQuery(api.todos.get) || [];
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   const weekData = useMemo(() => {
     const today = new Date();

@@ -169,15 +169,6 @@ const TodoList = ({ onFocusMode }) => {
     setSelectedTodos(new Set());
   };
 
-  const handleSelectTodo = (todoId, selected) => {
-    const newSelected = new Set(selectedTodos);
-    if (selected) {
-      newSelected.add(todoId);
-    } else {
-      newSelected.delete(todoId);
-    }
-    setSelectedTodos(newSelected);
-  };
 
   // Memoized filtered todos for performance
   const filteredTodos = useMemo(() => {

@@ -86,7 +86,6 @@ const AnalyticsDashboard = () => {
     };
   }, [categoryPerformance]);
 
-  const insights = useQuery(api.analytics.getProductivityInsights);
 
   // Check if any filters are active
   const hasActiveFilters = selectedCategories.length > 0 || selectedSubcategories.length > 0 || selectedActivityTypes.length > 0;
@@ -593,10 +592,11 @@ function getStartDate(range) {
       return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     case 'last90days':
       return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    case 'thisWeek':
+    case 'thisWeek': {
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay());
       return startOfWeek.toISOString().split('T')[0];
+    }
     case 'thisMonth':
       return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     case 'thisYear':

@@ -72,7 +72,7 @@ const Graph = ({
     };
 
     switch (chartType) {
-      case 'bar':
+      case 'bar': {
         // Custom tooltip for category charts
         const CustomTooltip = ({ active, payload, label }) => {
           if (active && payload && payload.length) {
@@ -123,6 +123,7 @@ const Graph = ({
             ))}
           </BarChart>
         );
+      }
 
       case 'area':
         return (
@@ -146,7 +147,7 @@ const Graph = ({
           </AreaChart>
         );
 
-      case 'pie':
+      case 'pie': {
         // For pie chart, we'll use the first numeric column and create segments
         const pieData = data.map((item, index) => ({
           name: item[dateColumn] || `Item ${index + 1}`,
@@ -173,6 +174,7 @@ const Graph = ({
             <Tooltip />
           </PieChart>
         );
+      }
 
       case 'scatter':
         return (

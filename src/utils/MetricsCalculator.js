@@ -215,7 +215,6 @@ export class MetricsCalculator {
     });
 
     const dates = Object.keys(dateGroups).sort().reverse();
-    const today = new Date().toISOString().split('T')[0];
 
     let currentStreak = 0;
     let longestStreak = 0;
@@ -223,7 +222,7 @@ export class MetricsCalculator {
 
     // Calculate current streak
     for (let i = 0; i < dates.length; i++) {
-      const date = new Date(dates[i]);
+      const _date = new Date(dates[i]);
       const expectedDate = new Date();
       expectedDate.setDate(expectedDate.getDate() - i);
       const expectedDateStr = expectedDate.toISOString().split('T')[0];

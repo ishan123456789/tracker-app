@@ -221,7 +221,6 @@ const MappingsTab = ({ mappings, sections, onShowMapper, onDeleteMapping, onTogg
 };
 
 const TemplatesTab = ({ templates, onCreateTemplate }) => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const builtInTemplates = [
     {

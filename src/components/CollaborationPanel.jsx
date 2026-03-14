@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -49,8 +49,6 @@ const CollaborationPanel = ({ todoId, sectionId }) => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedComment, setSelectedComment] = useState(null);
-  const [mentionSuggestions, setMentionSuggestions] = useState([]);
-  const [showMentions, setShowMentions] = useState(false);
 
   // Queries
   const comments = useQuery(
@@ -129,14 +127,8 @@ const CollaborationPanel = ({ todoId, sectionId }) => {
   const handleCommentChange = (value) => {
     setNewComment(value);
 
-    // Check for @ mentions
-    const lastAtIndex = value.lastIndexOf('@');
-    if (lastAtIndex !== -1 && lastAtIndex === value.length - 1) {
-      setShowMentions(true);
-      // In a real implementation, you'd fetch user suggestions here
-    } else {
-      setShowMentions(false);
-    }
+    // Check for @ mentions (placeholder for future mention feature)
+    // const lastAtIndex = value.lastIndexOf('@');
   };
 
   const formatCommentTime = (timestamp) => {
