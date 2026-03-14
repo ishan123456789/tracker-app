@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import SectionList from './components/SectionList.jsx';
 import TodoList from './components/TodoList.jsx';
 import FocusMode from './components/FocusMode.jsx';
 import AnalyticsDashboard from './components/AnalyticsDashboard.jsx';
@@ -37,11 +36,7 @@ const AppContent = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileStatsMenuAnchor, setMobileStatsMenuAnchor] = useState(null);
 
-  const sections = useQuery(api.sections.get) || [];
   const todos = useQuery(api.todos.get) || [];
-  const addSection = useMutation(api.sections.add);
-  const updateSection = useMutation(api.sections.update);
-  const deleteSection = useMutation(api.sections.remove);
   const { darkMode, toggleDarkMode, theme } = useThemeMode();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
@@ -65,48 +60,6 @@ const AppContent = () => {
   const handleCloseFocusMode = () => {
     setFocusMode(false);
     setFocusedTodo(null);
-  };
-
-  const handleExportCsv = () => {
-    const allHeaders = new Set();
-    sections.forEach(section => {
-      section.columns.forEach(col => allHeaders.add(col.name));
-    });
-
-    const headers = ['Section Title', ...Array.from(allHeaders)];
-
-    const escapeCsvCell = (cell) => {
-      if (cell === null || cell === undefined) {
-        return '';
-      }
-      let cellString = Array.isArray(cell) ? cell.join('; ') : String(cell);
-      if (cellString.includes(',') || cellString.includes('"') || cellString.includes('\n')) {
-        cellString = `"${cellString.replace(/"/g, '""')}"`;
-      }
-      return cellString;
-    };
-
-    const csvRows = [headers.map(escapeCsvCell).join(',')];
-
-    sections.forEach(section => {
-      section.entries.forEach(entry => {
-        const row = [section.title];
-        Array.from(allHeaders).forEach(header => {
-          row.push(entry[header]);
-        });
-        csvRows.push(row.map(escapeCsvCell).join(','));
-      });
-    });
-
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'activity_export.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   };
 
   const getProductivityStats = () => {
@@ -213,10 +166,6 @@ const AppContent = () => {
           {/* Desktop Buttons */}
           {!isMobile && (
             <>
-              <Button color="inherit" onClick={handleExportCsv}>
-                Export to CSV
-              </Button>
-
               <Button color="inherit" onClick={() => setShowActivitySettings(true)}>
                 Activity Settings
               </Button>
@@ -268,15 +217,12 @@ const AppContent = () => {
         onClose={() => setMobileMenuOpen(false)}
       >
         <Box sx={{ width: 250, pt: 2 }}>
-          <List>
-            <ListItem button onClick={() => { handleExportCsv(); setMobileMenuOpen(false); }}>
-              <ListItemText primary="Export to CSV" />
-            </ListItem>
-            <ListItem button onClick={() => { setShowActivitySettings(true); setMobileMenuOpen(false); }}>
-              <ListItemText primary="Activity Settings" />
-            </ListItem>
-          </List>
-        </Box>
+           <List>
+             <ListItem button onClick={() => { setShowActivitySettings(true); setMobileMenuOpen(false); }}>
+               <ListItemText primary="Activity Settings" />
+             </ListItem>
+           </List>
+         </Box>
       </Drawer>
 
       <Container
@@ -489,15 +435,6 @@ const AppContent = () => {
 
             {/* Main Content */}
             <TodoList onFocusMode={handleFocusMode} />
-
-            <Box sx={{ mt: 3 }}>
-              <SectionList
-                sections={sections}
-                addSection={addSection}
-                updateSection={updateSection}
-                deleteSection={deleteSection}
-              />
-            </Box>
           </Paper>
         )}
 

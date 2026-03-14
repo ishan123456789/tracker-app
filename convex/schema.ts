@@ -65,32 +65,6 @@ export default defineSchema({
     .index("by_team", ["teamId"])
     .index("by_user", ["userId"]),
 
-  sections: defineTable({
-    title: v.string(),
-    workspaceId: v.optional(v.id("workspaces")), // null for personal sections
-    teamId: v.optional(v.id("teams")), // null for workspace-wide sections
-    ownerId: v.optional(v.id("users")), // Made optional for backward compatibility
-    isShared: v.optional(v.boolean()),
-    permissions: v.optional(v.object({
-      canEdit: v.array(v.id("users")),
-      canView: v.array(v.id("users")),
-    })),
-    columns: v.array(
-      v.object({
-        name: v.string(),
-        type: v.string(), // "text", "number", "dropdown"
-        options: v.optional(v.array(v.string())),
-        allowMultiple: v.optional(v.boolean()),
-      })
-    ),
-    entries: v.array(v.any()),
-    createdAt: v.optional(v.number()), // Made optional for backward compatibility
-    updatedAt: v.optional(v.number()), // Made optional for backward compatibility
-  })
-    .index("by_workspace", ["workspaceId"])
-    .index("by_team", ["teamId"])
-    .index("by_owner", ["ownerId"]),
-
   todos: defineTable({
     text: v.string(),
     done: v.boolean(),
