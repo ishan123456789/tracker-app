@@ -35,7 +35,10 @@ const TodoList = ({ onFocusMode }) => {
   const [tagInput, setTagInput] = useState('');
 
   const [showHistory, setShowHistory] = useState(false);
-  const [sortBy, setSortBy] = useState('position');
+  const [sortBy, setSortBy] = useState(() => {
+    const saved = localStorage.getItem('todoSortPreference');
+    return saved || 'position';
+  });
   const [searchText, setSearchText] = useState('');
   const [filterBy, setFilterBy] = useState('all');
   const [focusedTodoIndex, setFocusedTodoIndex] = useState(-1);
@@ -46,6 +49,11 @@ const TodoList = ({ onFocusMode }) => {
   // Refs for keyboard shortcuts
   const newTodoRef = useRef(null);
   const searchRef = useRef(null);
+
+  // Save sort preference to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('todoSortPreference', sortBy);
+  }, [sortBy]);
 
   useEffect(() => {
     const interval = setInterval(() => {
